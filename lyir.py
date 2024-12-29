@@ -148,6 +148,79 @@ def analyze_games(games, username):
     return stats
 
 
+# Function to visualize Monthly Performance
+def plot_monthly_performance(monthly_performance):
+    # Define month names
+    month_names = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+    ]
+
+    # Extract data for plotting
+    months = [month_names[month - 1] for month in sorted(monthly_performance.keys())]
+    games = [
+        monthly_performance[month]["games"]
+        for month in sorted(monthly_performance.keys())
+    ]
+    wins = [
+        monthly_performance[month]["wins"]
+        for month in sorted(monthly_performance.keys())
+    ]
+    win_rates = [
+        (
+            monthly_performance[month]["wins"]
+            / monthly_performance[month]["games"]
+            * 100
+            if monthly_performance[month]["games"] > 0
+            else 0
+        )
+        for month in sorted(monthly_performance.keys())
+    ]
+
+    # Create a figure with two subplots: one for win rate and one for games/wins
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    # Plot Win Rate per Month
+    ax1.set_xlabel("Month")
+    ax1.set_ylabel("Win Rate (%)", color="tab:blue")
+    ax1.plot(
+        months,
+        win_rates,
+        marker="o",
+        color="tab:blue",
+        label="Win Rate",
+        linestyle="-",
+        linewidth=2,
+    )
+    ax1.tick_params(axis="y", labelcolor="tab:blue")
+
+    # Add a second y-axis to show number of games and wins
+    ax2 = ax1.twinx()
+    ax2.set_ylabel("Games and Wins", color="tab:green")
+    ax2.bar(months, games, color="tab:green", alpha=0.6, label="Games Played")
+    ax2.bar(months, wins, color="tab:orange", alpha=0.6, label="Wins")
+    ax2.tick_params(axis="y", labelcolor="tab:green")
+
+    # Title and grid
+    plt.title("Monthly Performance: Win Rate, Games Played, and Wins")
+    fig.tight_layout()  # Ensure no overlap of labels
+    ax1.legend(loc="upper left", bbox_to_anchor=(0.1, 1), fontsize="small")
+    ax2.legend(loc="upper right", bbox_to_anchor=(0.9, 1), fontsize="small")
+    plt.xticks(rotation=45)
+    plt.grid(True)
+    plt.show()
+
+
 # New function for getting rating progression
 # Mapping for input values to game types
 GAME_TYPE_MAP = {1: "Bullet", 2: "Blitz", 3: "Rapid", 4: "Classical"}
@@ -393,6 +466,9 @@ def display_stats(stats, games, username):
         print(
             f"{month_names[month - 1]}: {record['games']} games, Win Rate: {record['wins']/record['games']:.2%}"
         )
+
+    # Now plot the monthly performance data
+    plot_monthly_performance(stats["monthly_performance"])
 
     # Head-to-Head Analysis
     print("\nHead-to-Head Analysis:")
