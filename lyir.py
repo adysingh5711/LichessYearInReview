@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from collections import Counter, defaultdict
 from datetime import datetime
 import numpy as np
+from datetime import datetime
 
 
 # Categorize time controls
@@ -147,8 +148,93 @@ def analyze_games(games, username):
     return stats
 
 
-def display_stats(stats):
-    # Previous stats display...
+# New function for getting rating progression
+# Mapping for input values to game types
+GAME_TYPE_MAP = {1: "Bullet", 2: "Blitz", 3: "Rapid", 4: "Classical"}
+
+# Default maximum number of games to consider if not specified
+DEFAULT_MAX_GAMES = 1000
+
+
+def get_rating_progression(
+    games, username, game_type_number, max_games=DEFAULT_MAX_GAMES
+):
+    """
+    Function to get the rating progression of the user over time for a specific game type.
+    - games: List of games in PGN format
+    - username: The username of the player whose rating progression is being analyzed
+    - game_type_number: Integer (1: Bullet, 2: Blitz, 3: Rapid, 4: Classical)
+    - max_games: Maximum number of games to process (default 1000)
+    """
+    # Get the corresponding game type from the number
+    game_type = GAME_TYPE_MAP.get(
+        game_type_number, "Blitz"
+    )  # Default to Blitz if invalid type
+
+    dates = []
+    ratings = []
+
+    # Counter to limit the number of games processed
+    games_processed = 0
+
+    for game in games:
+        headers = game.headers
+        time_control = headers.get("TimeControl", "Unknown")
+
+        # Skip games that are not of the selected type
+        if game_type not in categorize_time_control(time_control):
+            continue
+
+        # Initialize rating variable
+        rating = None
+
+        # Check if the username played White or Black and fetch the corresponding Elo rating
+        if headers.get("White") == username:
+            rating = headers.get(
+                "WhiteElo", None
+            )  # Get White's Elo if the user is White
+        elif headers.get("Black") == username:
+            rating = headers.get(
+                "BlackElo", None
+            )  # Get Black's Elo if the user is Black
+
+        date = headers.get("Date", "????.??.??")
+
+        if rating and date != "????.??.??":
+            try:
+                date_obj = datetime.strptime(date, "%Y.%m.%d")
+                dates.append(date_obj)
+                ratings.append(int(rating))
+                games_processed += 1
+            except ValueError:
+                continue  # Skip invalid dates
+
+        # If we've reached the maximum games, break the loop
+        if games_processed >= max_games:
+            break
+
+    return dates, ratings
+
+
+# Function to plot rating progression
+def plot_rating_progression(dates, ratings, game_type):
+    if not dates or not ratings:
+        print("No Stats Available")
+        return
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(dates, ratings, marker="o", color="blue", label=game_type)
+    plt.title(f"Rating Progression ({game_type})")
+    plt.xlabel("Date")
+    plt.ylabel("Rating")
+    plt.xticks(rotation=45)
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+
+def display_stats(stats, games, username):
 
     print("\nGame Breakdown:")
     for game_type, count in stats["game_types"].items():
@@ -340,58 +426,49 @@ def display_stats(stats):
     else:
         print("No game lengths available.")
 
-
-def plot_rating_progression(stats):
-    # Determine the most played game type
-    most_played = max(stats["game_types"], key=stats["game_types"].get)
-
-    # Map input choices to game types
-    game_type_mapping = {"1": "Bullet", "2": "Blitz", "3": "Rapid", "4": "Classical"}
-
-    # Prompt user to select a game type, defaulting to the most played game type
-    print("\nSelect Game Type for Rating Progression:")
-    print("1. Bullet")
-    print("2. Blitz")
-    print("3. Rapid")
-    print("4. Classical")
-
-    game_type_choice = input(f"Enter your choice (default: {most_played}): ").strip()
-
-    # If the input is invalid, use the most played game type as default
-    game_type = game_type_mapping.get(game_type_choice, most_played)
-
-    # Check if there is any rating data available for the selected game type
-    if game_type in stats["ratings"] and stats["ratings"][game_type]:
-        # Extract dates and ratings for the selected game type
-        dates = stats["dates"][game_type]
-        ratings = stats["ratings"][game_type]
-
-        # Filter out games with missing or invalid dates
-        valid_data = [
-            (date, rating) for date, rating in zip(dates, ratings) if date and rating
-        ]
-
-        if valid_data:
-            # Sort the valid data by date
-            valid_data.sort(key=lambda x: x[0])
-
-            # Unzip the sorted valid data into separate lists for dates and ratings
-            dates, ratings = zip(*valid_data)
-
-            # Plot the rating progression
-            plt.plot(dates, ratings, marker="o", label=game_type, color="blue")
-            plt.title(f"Rating Progression ({game_type})")
-            plt.xlabel("Date")
-            plt.ylabel("Rating")
-            plt.grid(True)
-            plt.legend()
-            plt.xticks(rotation=45)  # Rotate x-axis labels for readability
-            plt.tight_layout()  # Ensure the plot fits well within the figure area
-            plt.show()
-        else:
-            print(f"No valid rating data available for {game_type}.")
+    # Find the most played game type by checking the highest count in game_types
+    most_played_game_type = stats["game_types"].most_common(1)
+    if most_played_game_type:
+        most_played_game_type = most_played_game_type[0][0]
     else:
-        print(f"No rating data available for {game_type}. Please check your PGN file.")
+        most_played_game_type = "Blitz"  # Default to 'Blitz' if no games are played
+
+    # Prompt for the game type to visualize rating progression
+    game_type_input = input(
+        "\nEnter the game type number to visualize rating progression (1: Bullet, 2: Blitz, 3: Rapid, 4: Classical): "
+    )
+
+    # If the user doesn't enter anything, use the most played game type
+    if game_type_input.strip() == "":
+        print(
+            f"No input provided. Using the most played game type: {most_played_game_type}."
+        )
+        # Map the most played game type to its corresponding number
+        game_type_number = {
+            "Bullet": 1,
+            "Blitz": 2,
+            "Rapid": 3,
+            "Classical": 4,
+        }[most_played_game_type]
+    else:
+        try:
+            # Convert input to an integer and validate
+            game_type_number = int(game_type_input)
+            if game_type_number not in [1, 2, 3, 4]:
+                raise ValueError
+        except ValueError:
+            print("Invalid input. Using the most played game type instead.")
+            game_type_number = {
+                "Bullet": 1,
+                "Blitz": 2,
+                "Rapid": 3,
+                "Classical": 4,
+            }[most_played_game_type]
+
+    # Call the function to get rating progression
+    dates, ratings = get_rating_progression(games, username, game_type_number)
+    game_type_name = GAME_TYPE_MAP[game_type_number]
+    plot_rating_progression(dates, ratings, game_type_name)
 
 
 if __name__ == "__main__":
@@ -400,5 +477,4 @@ if __name__ == "__main__":
 
     games = parse_pgn(pgn_file)
     stats = analyze_games(games, username)
-    display_stats(stats)
-    plot_rating_progression(stats)
+    display_stats(stats, games, username)
