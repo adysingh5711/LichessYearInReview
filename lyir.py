@@ -111,17 +111,17 @@ def analyze_games(games, username):
         date = headers.get("Date", "????.??.??")
         try:
             date = datetime.strptime(date, "%Y.%m.%d")
-            stats["monthly_performance"][date.month]["games"] += 1
+            month_stats = stats["monthly_performance"].setdefault(
+                date.month, {"games": 0, "wins": 0, "rating_change": 0}
+            )
+            month_stats["games"] += 1
+
             if result == "1-0" and white_player == username:
-                stats["monthly_performance"][date.month]["wins"] += 1
-                stats["monthly_performance"][date.month]["rating_change"] += int(
-                    headers.get("WhiteRatingDiff", "0")
-                )
+                month_stats["wins"] += 1
+                month_stats["rating_change"] += int(headers.get("WhiteRatingDiff", "0"))
             elif result == "0-1" and black_player == username:
-                stats["monthly_performance"][date.month]["wins"] += 1
-                stats["monthly_performance"][date.month]["rating_change"] += int(
-                    headers.get("BlackRatingDiff", "0")
-                )
+                month_stats["wins"] += 1
+                month_stats["rating_change"] += int(headers.get("BlackRatingDiff", "0"))
 
         except ValueError:
             pass
@@ -464,8 +464,9 @@ def display_stats(stats, games, username):
     # Sort months in ascending order
     for month in sorted(stats["monthly_performance"].keys()):
         record = stats["monthly_performance"][month]
+        win_rate = record["wins"] / record["games"] if record["games"] > 0 else 0
         print(
-            f"{month_names[month - 1]}: {record['games']} games, Win Rate: {record['wins']/record['games']:.2%}"
+            f"{month_names[month - 1]}: {record['games']} games, {record['wins']} wins, Win Rate: {win_rate:.2%}"
         )
 
     # Now plot the monthly performance data
