@@ -112,16 +112,17 @@ def analyze_games(games, username):
         try:
             date = datetime.strptime(date, "%Y.%m.%d")
             stats["monthly_performance"][date.month]["games"] += 1
-            if result == "1-0":
+            if result == "1-0" and white_player == username:
                 stats["monthly_performance"][date.month]["wins"] += 1
                 stats["monthly_performance"][date.month]["rating_change"] += int(
                     headers.get("WhiteRatingDiff", "0")
                 )
-            elif result == "0-1":
+            elif result == "0-1" and black_player == username:
                 stats["monthly_performance"][date.month]["wins"] += 1
                 stats["monthly_performance"][date.month]["rating_change"] += int(
                     headers.get("BlackRatingDiff", "0")
                 )
+
         except ValueError:
             pass
 
