@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseGame } from "@/lib/pgn-parser";
 import { analyzeGames } from "@/lib/analyzer";
-import { GameStats, AnalysisStats } from "@/types/chess";
+import { AnalysisStats } from "@/types/chess";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,8 +18,15 @@ export async function POST(req: NextRequest) {
 
     const pgnText = await file.text();
     const games = parseGame(pgnText);
-    const analysis = analyzeGames(games, username);
 
+    if (!games || games.length === 0) {
+      return NextResponse.json(
+        { error: "No valid games found in PGN file" },
+        { status: 400 }
+      );
+    }
+
+    const analysis: AnalysisStats = analyzeGames(games, username);
     return NextResponse.json(analysis);
   } catch (error) {
     console.error("Analysis error:", error);

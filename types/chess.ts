@@ -1,4 +1,4 @@
-// src/types/chess.ts
+// types/chess.ts
 export interface GameStats {
   timeControl: string;
   result: string;
@@ -10,6 +10,7 @@ export interface GameStats {
   blackElo?: string;
   whiteRatingDiff?: string;
   blackRatingDiff?: string;
+  moves: string[];
 }
 
 export interface AnalysisStats {
@@ -19,6 +20,15 @@ export interface AnalysisStats {
     losses: number;
     draws: number;
   };
+  streaks: {
+    winStreak: number;
+    lossStreak: number;
+    drawStreak: number;
+  };
+  gameLengths: Array<{
+    length: number;
+    result: string;
+  }>;
   openings: Array<{
     name: string;
     count: number;
@@ -33,5 +43,19 @@ export interface AnalysisStats {
   ratingProgression: Array<{
     date: string;
     rating: number;
+  }>;
+  headToHead: Array<{
+    opponent: string;
+    games: number;
+    wins: number;
+    losses: number;
+    draws: number;
+    winRate: number;
+  }>;
+  resultDistribution: Array<{
+    result: string;
+    averageLength: number;
+    shortestGame: number;
+    longestGame: number;
   }>;
 }
