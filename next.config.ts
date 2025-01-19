@@ -1,7 +1,10 @@
-import type { NextConfig } from "next";
+// next.config.ts
+import { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  reactStrictMode: true,
+  swcMinify: true,
+  // other configurations as needed
 };
 
 export default nextConfig;
