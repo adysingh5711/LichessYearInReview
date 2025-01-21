@@ -3,6 +3,8 @@ import { parseGame } from "@/lib/pgn-parser";
 import { analyzeGames } from "@/lib/analyzer";
 import { AnalysisStats } from "@/types/chess";
 
+export const maxDuration = 60
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
