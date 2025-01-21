@@ -136,7 +136,7 @@ Once the server is running, open [http://localhost:3000](http://localhost:3000) 
 8. **Gamification Elements**
    - Introduce achievements or badges for milestones reached during the year to enhance user engagement.
 
-## Contributors
+### Contributors
 
 <!-- This section will be automatically updated by GitHub Actions -->
 
