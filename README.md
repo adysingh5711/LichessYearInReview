@@ -138,8 +138,6 @@ Once the server is running, open [http://localhost:3000](http://localhost:3000) 
 
 ## Contributors
 
-### Contributors
-
 <!-- This section will be automatically updated by GitHub Actions -->
 
 ## Contributing
