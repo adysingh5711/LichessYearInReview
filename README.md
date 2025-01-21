@@ -1,55 +1,159 @@
 # LichessYearInReview
 
-1. User-Specific Insights
-   Total Games Played: Display the total number of games a user has played in the year.
-   Game Breakdown: Show the breakdown by different types of games (bullet, blitz, rapid, classical, etc.).
-   Win Rate: Calculate the win rate across all formats and maybe even give a percentage for each game type.
-   Highest Rating: Show the peak rating for the year in different time controls.
-   Rating Progression: Visualize the rating over time with a graph, highlighting the user's highest and lowest rating during the year.
-   Favorite Openings: Display statistics on the user's most played openings and their performance with those openings.
-   Longest Winning Streak: Include data about their best winning streak during the year.
-   Best Game: Allow users to mark or auto-select the game they feel was their best performance of the year, with an option for analysis.
-   Blunder/Accuracy Stats: Show how often they blundered (based on engine analysis) or their average accuracy (if Lichess engine analysis is used).
-   Puzzle Performance: Include stats about their progress in solving puzzles (e.g., highest puzzle rating, best streak, or average rating).
-   Tournaments Participated In: Show the number of tournaments they’ve joined, including any results or milestones achieved.
-2. Global Trends and Community Insights
-   Most Popular Time Control: Show data on the most-played time controls on the platform (bullet, blitz, rapid, classical, etc.).
-   Most Played Openings (Global): Display statistics on the most popular openings used by players worldwide during the year.
-   Top Players of the Year: Highlight top-rated players, both on the global leaderboard and by region or country. You could also have a "Most Improved Player" category.
-   Record-breaking Moments: Include any record-breaking achievements on Lichess (e.g., fastest checkmate, highest rating achieved in a month, etc.).
-   Most Active Countries: Show the countries with the most active players or the fastest-growing communities.
-   Top Tournaments and Events: List significant tournaments held on Lichess during the year, especially top performers and any notable results.
-   Puzzle Rush and Puzzle Battle Stats: Include the most solved puzzles in the community or most successful Puzzle Rush/Battle participants.
-3. Interactive Features
-   Milestone Badges: Allow users to earn badges for hitting certain milestones like playing a certain number of games, achieving a personal best rating, or completing a large number of puzzles.
-   Monthly/Quarterly Recap: Offer a quick snapshot of the user’s progress each month or quarter. This could include stats on games played, rating changes, or puzzle performance.
-   Game of the Month: Curate the best community games each month based on various criteria (e.g., brilliant tactics, amazing upsets, etc.) and allow users to vote on them.
-   Personal Highlights Video/Story: Create a personalized recap video or story for each user, similar to what Spotify does with their "Wrapped" feature. It could include highlights, stats, and key moments from their year in chess.
-4. Learning and Improvement Metrics
-   Rating Improvement Over Time: Show the user's rating increase/decrease over the year across different formats, with insights into key areas of improvement.
-   Puzzles Solved: Display how many puzzles the user has solved throughout the year, how their puzzle rating has evolved, and highlight their improvement.
-   Learning Goals: Show whether the user has set any learning goals (like focusing on a specific opening or endgame) and their progress toward those goals.
-   Chess.com vs Lichess Comparisons: If your platform allows for importing games from other sites, you could compare the user’s performance across Lichess and other platforms.
-5. Fun and Social Features
-   Chess Memes & Highlights: Create a fun section for popular chess memes or funny moments that occurred throughout the year (e.g., big blunders, surprising upsets).
-   Community Milestones: Celebrate community events, milestones (such as the most active day of the year, major tournament victories), and user engagement.
-   Top Clans/Teams: Showcase the most successful teams and clans within Lichess over the year, highlighting their victories in team tournaments or other team-based competitions.
-   Social Media Integration: Allow users to share their year-in-review on social media, with custom images, stats, or videos.
-   Chess Variants Played: Showcase the variants users played the most (e.g., Crazyhouse, Bughouse, Chess960) and performance stats within those variants.
-6. Technical Features
-   Games Played by Opening: Provide a heatmap or graph showing how often certain openings were used by the player and their win rates.
-   Opponent Stats: Show the average rating of opponents faced, with details on the toughest opponents or most memorable games.
-   Game Length Stats: Break down the average length of games in terms of moves, and maybe offer a comparison with global averages.
-   Tournament Participation: A list of tournaments the user participated in, along with their placements, ratings before and after the event, and overall performance.
-7. Event-Based Features
-   Yearly Chess Tournaments: If your platform hosts major tournaments (e.g., Lichess Global Championship), include stats for each event, top performers, and a summary of the year’s biggest events.
-   End-of-Year Tournament or Championship: Host a special tournament to celebrate the end of the year, or include a leaderboard for the year.
-8. Notifications and Gamification
-   Year-End Notification System: Send notifications or email alerts to users about their year-in-review summary, milestones reached, and upcoming tournaments or events.
-   Personalized Challenges: Create yearly challenges (e.g., play 100 games, reach a certain rating, complete a number of puzzles) that users can try to complete.
-9. Customization and Preferences
-   Theme and Visual Customization: Let users customize how their recap looks (dark/light mode, color schemes, etc.) or even pick a specific theme (e.g., space-themed chess recap).
-   Leaderboard Filters: Provide options for users to filter leaderboards based on specific formats, time controls, or regions.
-10. Feedback Mechanism
-    User Feedback: Allow users to provide feedback on their year-in-review experience. This can be valuable for improving the feature in future years.
-    Suggestions for Improvement: Include some tips or suggestions for users based on their stats, such as areas where they can improve (e.g., "You might want to study the Sicilian Defense to improve your opening game").
+## Overview
+
+LichessYearInReview is an innovative tool designed to provide chess players with a comprehensive summary of their annual performance on Lichess. This project aims to enhance user engagement by offering personalized insights, global trends, and interactive features that celebrate the chess community's achievements over the year.
+
+### 1. Download Lichess History
+
+- Visit the following link to download your Lichess history:
+  - [https://lichess.org/@/username/download](https://lichess.org/@/username/download)
+    - Replace `username` with your own Lichess username (e.g., [https://lichess.org/@/AdityaSingh_IIITR/download](https://lichess.org/@/AdityaSingh_IIITR/download)).
+
+### For Python Script
+
+1.  Install the required dependencies by running the following command:
+
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+2.  Run the script:
+
+    ```bash
+    python lyir.py
+    ```
+
+3.  You will be prompted to:
+
+- **Enter the path to your PGN file**: Provide the location of your PGN file containing your Lichess game history. This can typically be found in the downloads section after exporting from your Lichess account.
+- **Enter your Lichess username**: Input your Lichess username to associate the analysis with your account and personal game data.
+
+### For Website Users
+
+1. **Upload your PGN file**: On the website, simply drag and drop or select the file from your computer.
+2. **Enter your Lichess username**: Type your Lichess username to allow the system to fetch relevant data tied to your account.
+3. **Click the Analyse button**: Once you've uploaded your file and entered your username, click the **Analyse** button to generate your year-in-review summary.
+
+The analysis will then begin, and within a few moments, you'll be presented with a detailed report about your yearly performance on Lichess.
+
+## Getting Started with Development
+
+To get started with LichessYearInReview, follow these steps to run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Once the server is running, open [http://localhost:3000](http://localhost:3000) in your web browser to view the application. You can start editing the page by modifying `components/chess-analyzer.tsx`, and it will auto-update as you make changes.
+
+## Implemented Features (In Python File)
+
+1. **Game Breakdown**
+
+   - Categorizes games played by type: Blitz, Rapid, Bullet.
+   - Displays total games and results (wins, losses, draws).
+
+2. **Game Results**
+
+   - Total games played, wins, losses, and draws with win percentage calculations.
+
+3. **Top Openings Analysis**
+
+   - Lists the top 5 most played openings with the number of games played, wins, and success rates.
+   - Identifies the top 5 most successful openings based on wins and win percentages.
+
+4. **Performance by Color**
+
+   - Analyzes performance based on whether the user played as White or Black, including win/loss/draw rates.
+
+5. **Longest Streaks**
+
+   - Tracks the longest winning, losing, and drawing streaks throughout the year.
+
+6. **Struggling Openings**
+
+   - Identifies openings where the user has the most losses.
+
+7. **Game Length Analysis**
+
+   - Provides average game lengths for wins, losses, and draws, along with shortest and longest game statistics.
+
+8. **Monthly Performance Tracking**
+
+   - Summarizes performance metrics (games played, wins, win rates) on a monthly basis.
+
+9. **Head-to-Head Analysis**
+
+   - Analyzes performance against specific opponents, including win/loss records and win rates.
+
+10. **Overall Game Length Analysis**
+
+    - Calculates average number of moves per game across all games played.
+
+11. **Rating Progression Visualization**
+    - Allows users to visualize rating progression based on selected game types (defaulting to Blitz if no input is provided).
+
+## Future Scope of the Project
+
+1. **Enhanced Data Visualization**
+
+   - Implement graphical representations (charts/graphs) for various statistics such as monthly performance trends and rating progression over time using libraries like Matplotlib or Plotly.
+
+2. **User Interface Improvements**
+
+   - Develop a web-based interface using frameworks like Flask or Django to make it more user-friendly and accessible for users who may not be comfortable with command-line interfaces.
+
+3. **Integration with Lichess API**
+
+   - Use libraries like `berserk` or `python-lichess` to fetch real-time data directly from Lichess instead of relying solely on PGN files for analysis.
+     - Not used now as the API is currently taking 12+ min to send the data of the user with like 700 games and thus making it look like a dead app.
+
+4. **Additional Metrics**
+
+   - Include more detailed statistics such as blunders and inaccuracies in games using Lichess's analysis features.
+   - Track puzzle-solving performance if integrated with Lichess's puzzle features.
+
+5. **Social Features**
+
+   - Implement sharing options that allow users to share their yearly summaries on social media platforms.
+   - Enable community features where users can compare their statistics with friends or the broader Lichess community.
+
+6. **Learning Recommendations**
+
+   - Provide personalized recommendations for improvement based on user performance metrics (e.g., suggesting openings to study or tactics to practice).
+
+7. **Mobile App Development**
+
+   - Consider developing a mobile application that allows users to access their year-in-review statistics on-the-go.
+
+8. **Gamification Elements**
+   - Introduce achievements or badges for milestones reached during the year to enhance user engagement.
+
+## Contributors
+
+### Contributors
+
+<!-- This section will be automatically updated by GitHub Actions -->
+
+## Contributing
+
+Contributions are welcome!
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.
+
+## Acknowledgments
+
+Thank you to all contributors who make this project possible. Your support helps foster a vibrant chess community!
+
+---
+
+Feel free to explore, contribute, and enjoy your journey through chess with LichessYearInReview!

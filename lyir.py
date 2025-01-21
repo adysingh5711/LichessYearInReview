@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from collections import Counter, defaultdict
 from datetime import datetime
 import numpy as np
-from datetime import datetime
 
 
 # Categorize time controls
@@ -551,7 +550,7 @@ def display_stats(stats, games, username):
 
 if __name__ == "__main__":
     pgn_file = input("Enter the path to your PGN file: ")
-    username = input("Enter your username: ")
+    username = input("Enter your Lichess Username: ")
 
     games = parse_pgn(pgn_file)
     stats = analyze_games(games, username)
