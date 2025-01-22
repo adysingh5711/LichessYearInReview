@@ -17,6 +17,7 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  ComposedChart,
 } from "recharts";
 import { FileInput, Upload, Trophy, User, Clock, Swords } from "lucide-react";
 import { AnalysisStats } from "@/types/chess";
@@ -27,6 +28,7 @@ const ChessAnalyzer = () => {
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<AnalysisStats | null>(null);
   const [error, setError] = useState("");
+  const [selectedGameType, setSelectedGameType] = useState("All");
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -75,25 +77,57 @@ const ChessAnalyzer = () => {
     }
   };
 
-  const renderWinRateChart = (data: AnalysisStats["monthlyPerformance"]) => {
-    return (
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="month" />
-          <YAxis domain={[0, 100]} />
-          <Tooltip />
-          <Legend />
-          <Line
-            type="monotone"
-            dataKey="winRate"
-            stroke="#8884d8"
-            name="Win Rate %"
-            dot={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    );
+  const renderWinRateChart = (data: AnalysisStats["monthlyPerformance"]) => (
+    <ResponsiveContainer width="100%" height={300}>
+      <ComposedChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis
+          dataKey="month"
+          tickFormatter={(month) => {
+            const [year, m] = month.split("-");
+            return new Date(parseInt(year), parseInt(m) - 1).toLocaleString(
+              "default",
+              { month: "short" }
+            );
+          }}
+        />
+        <YAxis yAxisId="left" domain={[0, 100]} />
+        <YAxis yAxisId="right" orientation="right" />
+        <Tooltip content={<CustomMonthlyTooltip />} />
+        <Legend />
+        <Bar
+          yAxisId="right"
+          dataKey="games"
+          fill="#8884d8"
+          name="Games Played"
+        />
+        <Bar yAxisId="right" dataKey="wins" fill="#82ca9d" name="Wins" />
+        <Line
+          yAxisId="left"
+          dataKey="winRate"
+          stroke="#ff7300"
+          name="Win Rate %"
+        />
+      </ComposedChart>
+    </ResponsiveContainer>
+  );
+
+  const CustomMonthlyTooltip = ({ active, payload, label }: any) => {
+    if (active && payload) {
+      const month = new Date(label).toLocaleString("default", {
+        month: "long",
+        year: "numeric",
+      });
+      return (
+        <div className="bg-white p-3 border rounded-lg shadow">
+          <p className="font-bold">{month}</p>
+          <p>Games: {payload[0].value}</p>
+          <p>Wins: {payload[1].value}</p>
+          <p>Win Rate: {payload[2].value.toFixed(1)}%</p>
+        </div>
+      );
+    }
+    return null;
   };
 
   const renderOpeningsChart = (data: AnalysisStats["openings"]) => {
@@ -133,6 +167,30 @@ const ChessAnalyzer = () => {
         </BarChart>
       </ResponsiveContainer>
     );
+  };
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-white p-3 border rounded-lg shadow-lg">
+          <p className="font-bold">{label}</p>
+          {payload.map((entry: any) => (
+            <p key={entry.name} style={{ color: entry.color }}>
+              {entry.name}: {entry.value}
+            </p>
+          ))}
+          {"wins" in data && (
+            <>
+              <p>Wins: {data.wins}</p>
+              <p>Losses: {data.losses}</p>
+              <p>Draws: {data.draws}</p>
+            </>
+          )}
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -207,15 +265,15 @@ const ChessAnalyzer = () => {
 
         {stats && (
           <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="openings">Openings</TabsTrigger>
-              <TabsTrigger value="progression">Rating Progression</TabsTrigger>
+              <TabsTrigger value="progression">Rating</TabsTrigger>
               <TabsTrigger value="performance">Performance</TabsTrigger>
+              <TabsTrigger value="headToHead">Matchups</TabsTrigger>
             </TabsList>
-
             <TabsContent value="overview">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">Results</CardTitle>
@@ -263,10 +321,120 @@ const ChessAnalyzer = () => {
                     </div>
                   </CardContent>
                 </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Color Statistics</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div>
+                        <p className="font-medium">White:</p>
+                        <p>Wins: {stats.colorStats.White.wins}</p>
+                        <p>Losses: {stats.colorStats.White.losses}</p>
+                        <p>Draws: {stats.colorStats.White.draws}</p>
+                      </div>
+                      <div>
+                        <p className="font-medium">Black:</p>
+                        <p>Wins: {stats.colorStats.Black.wins}</p>
+                        <p>Losses: {stats.colorStats.Black.losses}</p>
+                        <p>Draws: {stats.colorStats.Black.draws}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">
+                      Result Distribution by Game Length
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <h3 className="font-medium">Wins</h3>
+                        <p>
+                          Average:{" "}
+                          {stats.resultDistribution.wins.average.toFixed(1)}{" "}
+                          moves
+                        </p>
+                        <p>
+                          Shortest: {stats.resultDistribution.wins.shortest}
+                        </p>
+                        <p>Longest: {stats.resultDistribution.wins.longest}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="font-medium">Losses</h3>
+                        <p>
+                          Average:{" "}
+                          {stats.resultDistribution.losses.average.toFixed(1)}{" "}
+                          moves
+                        </p>
+                        <p>
+                          Shortest: {stats.resultDistribution.losses.shortest}
+                        </p>
+                        <p>
+                          Longest: {stats.resultDistribution.losses.longest}
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="font-medium">Draws</h3>
+                        <p>
+                          Average:{" "}
+                          {stats.resultDistribution.draws.average.toFixed(1)}{" "}
+                          moves
+                        </p>
+                        <p>
+                          Shortest: {stats.resultDistribution.draws.shortest}
+                        </p>
+                        <p>Longest: {stats.resultDistribution.draws.longest}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
-
             <TabsContent value="openings">
+              <Tabs defaultValue="mostPlayed">
+                <TabsList>
+                  <TabsTrigger value="mostPlayed">Most Played</TabsTrigger>
+                  <TabsTrigger value="mostWins">Most Wins</TabsTrigger>
+                  <TabsTrigger value="bestRate">Best Win Rate</TabsTrigger>
+                  <TabsTrigger value="mostLosses">Most Losses</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="mostPlayed">
+                  {renderOpeningsChart(
+                    [...stats.openings]
+                      .sort((a, b) => b.count - a.count)
+                      .slice(0, 5)
+                  )}
+                </TabsContent>
+
+                <TabsContent value="mostWins">
+                  {renderOpeningsChart(
+                    [...stats.openings]
+                      .sort((a, b) => b.wins - a.wins)
+                      .slice(0, 5)
+                  )}
+                </TabsContent>
+
+                <TabsContent value="bestRate">
+                  {renderOpeningsChart(
+                    [...stats.openings]
+                      .sort((a, b) => b.winRate - a.winRate)
+                      .slice(0, 5)
+                  )}
+                </TabsContent>
+
+                <TabsContent value="mostLosses">
+                  {renderOpeningsChart(
+                    [...stats.openings]
+                      .sort((a, b) => b.losses - a.losses)
+                      .slice(0, 5)
+                  )}
+                </TabsContent>
+              </Tabs>
               <Card>
                 <CardHeader>
                   <CardTitle>Opening Statistics</CardTitle>
@@ -274,38 +442,88 @@ const ChessAnalyzer = () => {
                 <CardContent>{renderOpeningsChart(stats.openings)}</CardContent>
               </Card>
             </TabsContent>
-
             <TabsContent value="progression">
               <Card>
                 <CardHeader>
-                  <CardTitle>Rating Progression</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Rating Progression</CardTitle>
+                    <select
+                      value={selectedGameType}
+                      onChange={(e) => setSelectedGameType(e.target.value)}
+                      className="bg-background border rounded-md px-3 py-1 text-sm"
+                    >
+                      <option value="All">All Game Types</option>
+                      <option value="Bullet">Bullet</option>
+                      <option value="Blitz">Blitz</option>
+                      <option value="Rapid">Rapid</option>
+                      <option value="Classical">Classical</option>
+                    </select>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={stats.ratingProgression}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey="date"
-                        angle={-45}
-                        textAnchor="end"
-                        height={100}
-                      />
-                      <YAxis domain={["dataMin - 100", "dataMax + 100"]} />
-                      <Tooltip />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="rating"
-                        stroke="#8884d8"
-                        name="Rating"
-                        dot={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  {stats.ratingProgression && (
+                    <div className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart
+                          data={
+                            selectedGameType === "All"
+                              ? stats.ratingProgression
+                              : stats.ratingProgression.filter(
+                                  (r) => r.gameType === selectedGameType
+                                )
+                          }
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis
+                            dataKey="date"
+                            tickFormatter={(date) =>
+                              new Date(date).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                              })
+                            }
+                          />
+                          <YAxis domain={["dataMin - 50", "dataMax + 50"]} />
+                          <Tooltip
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                const data = payload[0].payload;
+                                return (
+                                  <div className="bg-white p-3 border rounded-lg shadow-lg">
+                                    <p className="font-bold">
+                                      {new Date(data.date).toLocaleDateString(
+                                        "en-US",
+                                        {
+                                          year: "numeric",
+                                          month: "long",
+                                          day: "numeric",
+                                        }
+                                      )}
+                                    </p>
+                                    <p>Rating: {data.rating}</p>
+                                    <p>Game Type: {data.gameType}</p>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Legend />
+                          <Line
+                            type="monotone"
+                            dataKey="rating"
+                            stroke="#8884d8"
+                            strokeWidth={2}
+                            dot={false}
+                            name="Rating"
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
-
             <TabsContent value="performance">
               <Card>
                 <CardHeader>
@@ -313,6 +531,46 @@ const ChessAnalyzer = () => {
                 </CardHeader>
                 <CardContent>
                   {renderWinRateChart(stats.monthlyPerformance)}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="headToHead">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Top Opponent Matchups</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <BarChart data={stats.headToHead}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="opponent"
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                      />
+                      <YAxis yAxisId="left" />
+                      <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        domain={[0, 100]}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                      <Bar
+                        yAxisId="left"
+                        dataKey="games"
+                        fill="#8884d8"
+                        name="Total Games"
+                      />
+                      <Bar
+                        yAxisId="right"
+                        dataKey="winRate"
+                        fill="#82ca9d"
+                        name="Win Rate %"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </CardContent>
               </Card>
             </TabsContent>

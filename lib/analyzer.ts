@@ -1,49 +1,6 @@
 import { GameStats } from "@/types/chess";
 import { categorizeTimeControl } from "./pgn-parser";
-
-interface AnalysisStats {
-  gameTypes: Record<string, number>;
-  results: {
-    wins: number;
-    losses: number;
-    draws: number;
-  };
-  streaks: {
-    winStreak: number;
-    lossStreak: number;
-    drawStreak: number;
-  };
-  gameLengths: Array<{ length: number; result: string }>;
-  openings: Array<{
-    name: string;
-    count: number;
-    winRate: number;
-  }>;
-  monthlyPerformance: Array<{
-    month: string;
-    games: number;
-    wins: number;
-    winRate: number;
-  }>;
-  ratingProgression: Array<{
-    date: string;
-    rating: number;
-  }>;
-  headToHead: Array<{
-    opponent: string;
-    games: number;
-    wins: number;
-    losses: number;
-    draws: number;
-    winRate: number;
-  }>;
-  resultDistribution: Array<{
-    result: string;
-    averageLength: number;
-    shortestGame: number;
-    longestGame: number;
-  }>;
-}
+import { AnalysisStats } from "@/types/chess";
 
 export const analyzeGames = (
   games: GameStats[],
@@ -58,160 +15,183 @@ export const analyzeGames = (
     monthlyPerformance: [],
     ratingProgression: [],
     headToHead: [],
-    resultDistribution: [],
+    resultDistribution: {
+      wins: { average: 0, shortest: 0, longest: 0 },
+      losses: { average: 0, shortest: 0, longest: 0 },
+      draws: { average: 0, shortest: 0, longest: 0 },
+    },
+    colorStats: {
+      White: { wins: 0, losses: 0, draws: 0 },
+      Black: { wins: 0, losses: 0, draws: 0 },
+    },
   };
 
-  const monthlyStats: Record<string, { games: number; wins: number }> = {};
-  const openingStats: Record<string, { count: number; wins: number }> = {};
-  const ratingHistory: { date: string; rating: number }[] = [];
-  const headToHeadStats: Record<
+  let currentWinStreak = 0;
+  let currentLossStreak = 0;
+  let currentDrawStreak = 0;
+
+  const gameLengths = {
+    wins: [] as number[],
+    losses: [] as number[],
+    draws: [] as number[],
+  };
+
+  const monthlyStats: Record<
     string,
-    { wins: number; losses: number; draws: number }
+    { games: number; wins: number; ratingChange: number }
   > = {};
 
-  let currentStreak = { wins: 0, losses: 0, draws: 0 };
-  const gameLengthsByResult: Record<string, number[]> = {
-    "1-0": [],
-    "0-1": [],
-    "1/2-1/2": [],
-  };
+  const headToHeadStats: Record<
+    string,
+    { wins: 0; losses: 0; draws: 0; lastPlayed: Date }
+  > = {};
 
+  const openingStats: Record<
+    string,
+    { count: number; wins: number; losses: number; draws: number }
+  > = {};
+
+  // Main processing loop
   games.forEach((game) => {
-    // Game types
-    const timeCategory = categorizeTimeControl(game.timeControl);
-    stats.gameTypes[timeCategory] = (stats.gameTypes[timeCategory] || 0) + 1;
+    const timeControl = categorizeTimeControl(game.timeControl);
+    stats.gameTypes[timeControl] = (stats.gameTypes[timeControl] || 0) + 1;
 
-    // Results
-    if (game.result === "1-0" && game.white === username) {
-      stats.results.wins++;
-      currentStreak.wins++;
-      currentStreak.losses = 0;
-      currentStreak.draws = 0;
-    } else if (game.result === "0-1" && game.black === username) {
-      stats.results.wins++;
-      currentStreak.wins++;
-      currentStreak.losses = 0;
-      currentStreak.draws = 0;
+    // Process game result
+    const isWhite = game.white === username;
+    let isWin = false;
+    let isDraw = false;
+
+    // Result processing
+    if (game.result === "1-0") {
+      if (isWhite) {
+        stats.results.wins++;
+        stats.colorStats.White.wins++;
+        currentWinStreak++;
+        currentLossStreak = 0;
+        currentDrawStreak = 0;
+        isWin = true;
+      } else {
+        stats.results.losses++;
+        stats.colorStats.Black.losses++;
+        currentLossStreak++;
+        currentWinStreak = 0;
+        currentDrawStreak = 0;
+      }
+    } else if (game.result === "0-1") {
+      if (!isWhite) {
+        stats.results.wins++;
+        stats.colorStats.Black.wins++;
+        currentWinStreak++;
+        currentLossStreak = 0;
+        currentDrawStreak = 0;
+        isWin = true;
+      } else {
+        stats.results.losses++;
+        stats.colorStats.White.losses++;
+        currentLossStreak++;
+        currentWinStreak = 0;
+        currentDrawStreak = 0;
+      }
     } else if (game.result === "1/2-1/2") {
       stats.results.draws++;
-      currentStreak.draws++;
-      currentStreak.wins = 0;
-      currentStreak.losses = 0;
-    } else if (game.result !== "*") {
-      stats.results.losses++;
-      currentStreak.losses++;
-      currentStreak.wins = 0;
-      currentStreak.draws = 0;
+      currentDrawStreak++;
+      currentWinStreak = 0;
+      currentLossStreak = 0;
+      isDraw = true;
+      if (isWhite) {
+        stats.colorStats.White.draws++;
+      } else {
+        stats.colorStats.Black.draws++;
+      }
     }
 
     // Update streaks
-    stats.streaks.winStreak = Math.max(
-      stats.streaks.winStreak,
-      currentStreak.wins
-    );
-    stats.streaks.lossStreak = Math.max(
-      stats.streaks.lossStreak,
-      currentStreak.losses
-    );
-    stats.streaks.drawStreak = Math.max(
-      stats.streaks.drawStreak,
-      currentStreak.draws
-    );
+    stats.streaks.winStreak = Math.max(stats.streaks.winStreak, currentWinStreak);
+    stats.streaks.lossStreak = Math.max(stats.streaks.lossStreak, currentLossStreak);
+    stats.streaks.drawStreak = Math.max(stats.streaks.drawStreak, currentDrawStreak);
 
-    // Game lengths
+    // Process game length
     const gameLength = game.moves.length;
-    stats.gameLengths.push({
-      length: gameLength,
-      result: game.result,
-    });
-
-    if (game.result in gameLengthsByResult) {
-      gameLengthsByResult[game.result].push(gameLength);
+    stats.gameLengths.push({ length: gameLength, result: game.result });
+    if (gameLength > 1) {
+      if (isWin) gameLengths.wins.push(gameLength);
+      else if (isDraw) gameLengths.draws.push(gameLength);
+      else gameLengths.losses.push(gameLength);
     }
 
     // Monthly performance
     if (game.date) {
-      const month = game.date.substring(0, 7); // YYYY-MM
-      if (!monthlyStats[month]) monthlyStats[month] = { games: 0, wins: 0 };
+      const month = new Date(game.date).toISOString().slice(0, 7);
+      if (!monthlyStats[month]) {
+        monthlyStats[month] = { games: 0, wins: 0, ratingChange: 0 };
+      }
       monthlyStats[month].games++;
-      if (
-        (game.result === "1-0" && game.white === username) ||
-        (game.result === "0-1" && game.black === username)
-      ) {
+      if (isWin) {
         monthlyStats[month].wins++;
-      }
-    }
-
-    // Openings
-    if (game.opening) {
-      if (!openingStats[game.opening]) {
-        openingStats[game.opening] = { count: 0, wins: 0 };
-      }
-      openingStats[game.opening].count++;
-      if (
-        (game.result === "1-0" && game.white === username) ||
-        (game.result === "0-1" && game.black === username)
-      ) {
-        openingStats[game.opening].wins++;
+        const ratingDiff = isWhite
+          ? parseInt(game.whiteRatingDiff || "0")
+          : parseInt(game.blackRatingDiff || "0");
+        monthlyStats[month].ratingChange += ratingDiff;
       }
     }
 
     // Rating progression
     if (game.date) {
-      const rating =
-        game.white === username
-          ? parseInt(game.whiteElo || "0")
-          : parseInt(game.blackElo || "0");
-      if (rating) {
-        ratingHistory.push({ date: game.date, rating });
-      }
+      const rating = isWhite
+        ? parseInt(game.whiteElo || "0")
+        : parseInt(game.blackElo || "0");
+      stats.ratingProgression.push({
+        date: new Date(game.date),
+        rating,
+        gameType: timeControl,
+      });
     }
 
-    // Head-to-head analysis
-    const opponent = game.white === username ? game.black : game.white;
+    // Openings tracking
+    const opening = game.opening || "Unknown";
+    if (!openingStats[opening]) {
+      openingStats[opening] = { count: 0, wins: 0, losses: 0, draws: 0 };
+    }
+    openingStats[opening].count++;
+    if (isWin) openingStats[opening].wins++;
+    else if (isDraw) openingStats[opening].draws++;
+    else openingStats[opening].losses++;
+
+    // Head-to-head tracking
+    const opponent = isWhite ? game.black : game.white;
     if (opponent) {
       if (!headToHeadStats[opponent]) {
-        headToHeadStats[opponent] = { wins: 0, losses: 0, draws: 0 };
+        headToHeadStats[opponent] = { wins: 0, losses: 0, draws: 0, lastPlayed: new Date() };
       }
-
-      if (game.result === "1-0" && game.white === username) {
-        headToHeadStats[opponent].wins++;
-      } else if (game.result === "0-1" && game.black === username) {
-        headToHeadStats[opponent].wins++;
-      } else if (game.result === "1/2-1/2") {
-        headToHeadStats[opponent].draws++;
-      } else {
-        headToHeadStats[opponent].losses++;
-      }
+      if (isWin) headToHeadStats[opponent].wins++;
+      else if (isDraw) headToHeadStats[opponent].draws++;
+      else headToHeadStats[opponent].losses++;
+      headToHeadStats[opponent].lastPlayed = new Date(game.date || new Date());
     }
   });
 
-  // Format monthly performance
-  stats.monthlyPerformance = Object.entries(monthlyStats)
-    .map(([month, data]) => ({
-      month,
-      games: data.games,
-      wins: data.wins,
-      winRate: (data.wins / data.games) * 100,
-    }))
-    .sort((a, b) => a.month.localeCompare(b.month));
+  // Transform monthly stats
+  stats.monthlyPerformance = Object.entries(monthlyStats).map(([month, data]) => ({
+    month,
+    games: data.games,
+    wins: data.wins,
+    winRate: data.games > 0 ? (data.wins / data.games) * 100 : 0,
+    ratingChange: data.ratingChange,
+  }));
 
-  // Format openings
+  // Transform openings data
   stats.openings = Object.entries(openingStats)
     .map(([name, data]) => ({
       name,
       count: data.count,
-      winRate: (data.wins / data.count) * 100,
+      wins: data.wins,
+      losses: data.losses,
+      draws: data.draws,
+      winRate: data.count > 0 ? (data.wins / data.count) * 100 : 0,
     }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
+    .sort((a, b) => b.count - a.count);
 
-  // Format rating progression
-  stats.ratingProgression = ratingHistory.sort((a, b) =>
-    a.date.localeCompare(b.date)
-  );
-
-  // Format head-to-head stats
+  // Transform head-to-head data
   stats.headToHead = Object.entries(headToHeadStats)
     .map(([opponent, record]) => {
       const totalGames = record.wins + record.losses + record.draws;
@@ -221,43 +201,27 @@ export const analyzeGames = (
         wins: record.wins,
         losses: record.losses,
         draws: record.draws,
-        winRate: (record.wins / totalGames) * 100,
+        winRate: totalGames > 0 ? (record.wins / totalGames) * 100 : 0,
+        lastPlayed: record.lastPlayed,
       };
     })
-    .sort((a, b) => b.games - a.games)
-    .slice(0, 5);
+    .sort((a, b) => b.games - a.games);
 
-  // Format result distribution
-  stats.resultDistribution = Object.entries(gameLengthsByResult).map(
-    ([result, lengths]) => {
-      const averageLength =
-        lengths.reduce((sum, length) => sum + length, 0) / lengths.length || 0;
-      return {
-        result,
-        averageLength,
-        shortestGame: Math.min(...lengths),
-        longestGame: Math.max(...lengths),
-      };
-    }
-  );
+  // Calculate result distribution
+  const calculateStats = (arr: number[]) => ({
+    average: arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0,
+    shortest: arr.length ? Math.min(...arr) : 0,
+    longest: arr.length ? Math.max(...arr) : 0,
+  });
+
+  stats.resultDistribution = {
+    wins: calculateStats(gameLengths.wins),
+    losses: calculateStats(gameLengths.losses),
+    draws: calculateStats(gameLengths.draws),
+  };
+
+  // Sort rating progression chronologically
+  stats.ratingProgression.sort((a, b) => a.date.getTime() - b.date.getTime());
 
   return stats;
-};
-
-export const getRatingProgression = (
-  games: GameStats[],
-  username: string,
-  gameType: string
-) => {
-  const filteredGames = games.filter(
-    (game) => categorizeTimeControl(game.timeControl) === gameType
-  );
-
-  return filteredGames.map((game) => ({
-    date: game.date || "",
-    rating:
-      game.white === username
-        ? parseInt(game.whiteElo || "0")
-        : parseInt(game.blackElo || "0"),
-  }));
 };

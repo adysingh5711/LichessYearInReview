@@ -5,14 +5,13 @@ export const categorizeTimeControl = (timeControl: string): string => {
   if (!timeControl || timeControl === "unlimited") return "Classical";
 
   try {
-    const [baseTime, increment] = timeControl.split("+").map(Number);
+    const parts = timeControl.split("+");
+    const baseTime = parseInt(parts[0], 10);
     if (isNaN(baseTime)) return "Classical";
 
-    const totalTime = baseTime + (increment || 0) * 40; // Approximate game length
-
-    if (totalTime < 180) return "Bullet";
-    if (totalTime <= 480) return "Blitz";
-    if (totalTime <= 1500) return "Rapid";
+    if (baseTime < 180) return "Bullet";
+    if (baseTime <= 480) return "Blitz";
+    if (baseTime <= 1500) return "Rapid";
     return "Classical";
   } catch (error) {
     return "Classical";
