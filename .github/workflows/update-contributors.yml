@@ -1,28 +1,17 @@
-name: Add contributors
-
 on:
   push:
     branches:
       - main
-  schedule:
-    - cron: '0 0 * * *'
 
 jobs:
-  update-contributors:
+  contrib-readme-job:
     runs-on: ubuntu-latest
+    name: A job to automate contrib in readme
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.x
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Update contributors
+      - name: Contribute List
+        uses: akhilmhdh/contributors-readme-action@v2.3.10
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        run: python main.py
