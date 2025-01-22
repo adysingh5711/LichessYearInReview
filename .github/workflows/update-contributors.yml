@@ -1,36 +1,28 @@
 name: Add contributors
 
 on:
-  schedule:
-    - cron: "20 20 * * *" # Runs every day at 20:20 UTC
   push:
     branches:
-      - main # Trigger on push to main branch
+      - main
+  schedule:
+    - cron: '0 0 * * *'
 
 jobs:
-  add-contributors:
+  update-contributors:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Update contributors
-        uses: BobAnkh/add-contributors@master
+      - name: Set up Python
+        uses: actions/setup-python@v2
         with:
-          CONTRIBUTOR: "### Contributors"
-          COLUMN_PER_ROW: "6"
-          ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          IMG_WIDTH: "100"
-          FONT_SIZE: "14"
-          PATH: "/README.md"
-          COMMIT_MESSAGE: "docs(README): update contributors"
-          AVATAR_SHAPE: "round"
+          python-version: 3.x
 
-      - name: Commit changes
-        run: |
-          git config --local user.name "GitHub Action"
-          git config --local user.email "action@github.com"
-          git add README.md
-          git commit -m "docs(README): update contributors" || echo "No changes to commit"
-          git push origin main
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Update contributors
+        env:
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        run: python main.py
