@@ -139,6 +139,19 @@ Once the server is running, open [http://localhost:3000](http://localhost:3000) 
 ## Contributors
 
 <!-- readme: collaborators,contributors -start -->
+<table>
+	<tbody>
+		<tr>
+            <td align="center">
+                <a href="https://github.com/adysingh5711">
+                    <img src="https://avatars.githubusercontent.com/u/124086655?v=4" width="100;" alt="adysingh5711"/>
+                    <br />
+                    <sub><b>Aditya Singh</b></sub>
+                </a>
+            </td>
+		</tr>
+	<tbody>
+</table>
 <!-- readme: collaborators,contributors -end -->
 
 Contributions are welcome!
