@@ -21,6 +21,11 @@ import {
 } from "recharts";
 import { FileInput, Upload, Trophy, User, Clock, Swords } from "lucide-react";
 import { AnalysisStats } from "@/types/chess";
+import type { TooltipProps } from "recharts";
+import type {
+  ValueType,
+  NameType,
+} from "recharts/types/component/DefaultTooltipContent";
 
 const ChessAnalyzer = () => {
   const [username, setUsername] = useState("");
@@ -112,18 +117,29 @@ const ChessAnalyzer = () => {
     </ResponsiveContainer>
   );
 
-  const CustomMonthlyTooltip = ({ active, payload, label }: any) => {
+  const CustomMonthlyTooltip = ({
+    active,
+    payload,
+  }: TooltipProps<ValueType, NameType>) => {
     if (active && payload) {
-      const month = new Date(label).toLocaleString("default", {
-        month: "long",
-        year: "numeric",
-      });
+      const data = payload[0]?.payload as {
+        month: string;
+        games: number;
+        wins: number;
+        winRate: number;
+      };
+
       return (
         <div className="bg-white p-3 border rounded-lg shadow">
-          <p className="font-bold">{month}</p>
-          <p>Games: {payload[0].value}</p>
-          <p>Wins: {payload[1].value}</p>
-          <p>Win Rate: {payload[2].value.toFixed(1)}%</p>
+          <p className="font-bold">
+            {new Date(data.month).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+            })}
+          </p>
+          <p>Games: {data.games}</p>
+          <p>Wins: {data.wins}</p>
+          <p>Win Rate: {data.winRate.toFixed(1)}%</p>
         </div>
       );
     }
@@ -169,13 +185,24 @@ const ChessAnalyzer = () => {
     );
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({
+    active,
+    payload,
+    label,
+  }: TooltipProps<ValueType, NameType>) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload;
+      const data = payload[0].payload as {
+        wins: number;
+        losses: number;
+        draws: number;
+        name?: string;
+        opponent?: string;
+      };
+
       return (
         <div className="bg-white p-3 border rounded-lg shadow-lg">
           <p className="font-bold">{label}</p>
-          {payload.map((entry: any) => (
+          {payload.map((entry) => (
             <p key={entry.name} style={{ color: entry.color }}>
               {entry.name}: {entry.value}
             </p>
@@ -187,6 +214,34 @@ const ChessAnalyzer = () => {
               <p>Draws: {data.draws}</p>
             </>
           )}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const RatingTooltip = ({
+    active,
+    payload,
+  }: TooltipProps<ValueType, NameType>) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload as {
+        date: Date;
+        rating: number;
+        gameType: string;
+      };
+
+      return (
+        <div className="bg-white p-3 border rounded-lg shadow-lg">
+          <p className="font-bold">
+            {new Date(data.date).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
+          <p>Rating: {data.rating}</p>
+          <p>Game Type: {data.gameType}</p>
         </div>
       );
     }
