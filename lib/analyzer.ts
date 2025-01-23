@@ -171,13 +171,15 @@ export const analyzeGames = (
   });
 
   // Transform monthly stats
-  stats.monthlyPerformance = Object.entries(monthlyStats).map(([month, data]) => ({
-    month,
-    games: data.games,
-    wins: data.wins,
-    winRate: data.games > 0 ? (data.wins / data.games) * 100 : 0,
-    ratingChange: data.ratingChange,
-  }));
+  stats.monthlyPerformance = Object.entries(monthlyStats)
+    .map(([month, data]) => ({
+      month,
+      games: data.games,
+      wins: data.wins,
+      winRate: data.games > 0 ? (data.wins / data.games) * 100 : 0,
+      ratingChange: data.ratingChange,
+    }))
+    .sort((a, b) => a.month.localeCompare(b.month));
 
   // Transform openings data
   stats.openings = Object.entries(openingStats)
