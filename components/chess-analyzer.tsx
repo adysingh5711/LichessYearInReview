@@ -74,6 +74,7 @@ const ChessAnalyzer = () => {
   const [stats, setStats] = useState<AnalysisStats | null>(null);
   const [error, setError] = useState("");
   const [selectedGameType, setSelectedGameType] = useState<string>("All");
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (stats) {
@@ -148,9 +149,14 @@ const ChessAnalyzer = () => {
               { month: "short" }
             );
           }}
+          label={{
+            value: "Months",
+            position: "bottom",
+            dy: -5
+          }}
         />
-        <YAxis yAxisId="left" domain={[0, 100]} />
-        <YAxis yAxisId="right" orientation="right" />
+        <YAxis yAxisId="left" domain={[0, 100]} label={{ value: "Win Rate %", angle: -90, position: "bottom", dx: -30, dy: -90 }} />
+        <YAxis yAxisId="right" orientation="right" label={{ value: "Games Played", angle: 90, position: "insideRight", dx: 0, dy: 70 }} />
         <Tooltip content={<CustomMonthlyTooltip />} />
         <Legend />
         <Bar
@@ -169,7 +175,15 @@ const ChessAnalyzer = () => {
         <Brush
           dataKey="month"
           height={30}
-          stroke="#8884d8"
+          stroke={theme === "dark" ? "#64748b" : "#8884d8"} // slate-500 in dark, original in light
+          fill={theme === "dark" ? "#1e293b" : "#f1f5f9"} // slate-800 in dark, slate-50 in light
+          traveller={(props) => (
+            <rect
+              {...props}
+              fill={theme === "dark" ? "#64748b" : "#8884d8"} // Handle color
+              stroke={theme === "dark" ? "#94a3b8" : "#cbd5e1"} // Handle border
+            />
+          )}
           startIndex={Math.max(0, data.length - 11)}
           endIndex={data.length - 1}
         />
@@ -190,7 +204,7 @@ const ChessAnalyzer = () => {
       };
 
       return (
-        <div className="bg-white p-3 border rounded-lg shadow">
+        <div className="bg-background text-foreground p-3 border rounded-lg shadow">
           <p className="font-bold">
             {new Date(data.month).toLocaleDateString("en-US", {
               year: "numeric",
@@ -206,31 +220,75 @@ const ChessAnalyzer = () => {
     return null;
   };
 
+  const renderCustomizedTick = (props: any) => {
+    const { x, y, payload } = props;
+    const maxLineLength = 15; // Characters per line
+    const maxLines = 3;
+
+    let label = payload.value;
+    let lines: string[] = [];
+    for (let i = 0; i < maxLines; i++) {
+      const line = label.slice(i * maxLineLength, (i + 1) * maxLineLength);
+      if (line) lines.push(line);
+      else break;
+    }
+
+    const fontSize = Math.max(11, 12 - Math.floor(lines[0]?.length / 3 || 0));
+
+    return (
+      <text
+        x={x}
+        y={y}
+        dy={20}
+        fill="#666"
+        fontSize={fontSize}
+        textAnchor="middle"
+        dominantBaseline="hanging"
+      >
+        {lines.map((line, index) => (
+          <tspan x={x} dy={index === 0 ? 0 : 15} key={index}>
+            {line}
+          </tspan>
+        ))}
+      </text>
+    );
+  };
+
   const renderOpeningsChart = (data: AnalysisStats["openings"]) => {
     return (
       <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={data}>
+        <BarChart data={data} style={{
+          color: 'hsl(var(--foreground))',
+          fill: 'hsl(var(--foreground))'
+        }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="name"
-            angle={-45}
             textAnchor="end"
-            height={100}
-            tick={{ fontSize: 12 }}
+            height={55}
+            tick={renderCustomizedTick}
+            interval={0}
+            label={{
+              value: "Openings",
+              position: "bottom",
+              dy: -25
+            }}
           />
           <YAxis
             yAxisId="left"
             label={{
               value: "Games Played",
               angle: -90,
-              position: "insideLeft",
+              position: "bottom",
+              dx: -30,
+              dy: -90
             }}
           />
           <YAxis
             yAxisId="right"
             orientation="right"
             domain={[0, 100]}
-            label={{ value: "Win Rate %", angle: 90, position: "insideRight" }}
+            label={{ value: "Win Rate %", angle: 90, position: "insideRight", dx: -10, dy: 70 }}
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend />
@@ -249,7 +307,15 @@ const ChessAnalyzer = () => {
           <Brush
             dataKey="name"
             height={30}
-            stroke="#8884d8"
+            stroke={theme === "dark" ? "#64748b" : "#8884d8"} // slate-500 in dark, original in light
+            fill={theme === "dark" ? "#1e293b" : "#f1f5f9"} // slate-800 in dark, slate-50 in light
+            traveller={(props) => (
+              <rect
+                {...props}
+                fill={theme === "dark" ? "#64748b" : "#8884d8"} // Handle color
+                stroke={theme === "dark" ? "#94a3b8" : "#cbd5e1"} // Handle border
+              />
+            )}
             travellerWidth={10}
             gap={5}
             startIndex={0}
@@ -275,7 +341,7 @@ const ChessAnalyzer = () => {
       };
 
       return (
-        <div className="bg-white p-3 border rounded-lg shadow-lg">
+        <div className="bg-background text-foreground p-3 border rounded-lg shadow-lg">
           <p className="font-bold">{label}</p>
           {payload.map((entry) => (
             <p key={entry.name} style={{ color: entry.color }}>
@@ -307,7 +373,7 @@ const ChessAnalyzer = () => {
       };
 
       return (
-        <div className="bg-white p-3 border rounded-lg shadow-lg">
+        <div className="bg-background text-foreground p-3 border rounded-lg shadow-lg">
           <p className="font-bold">
             {new Date(data.date).toLocaleDateString("en-US", {
               year: "numeric",
@@ -324,7 +390,7 @@ const ChessAnalyzer = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black/10 p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-black/10 p-8 scrollbar-dark">
       <div className="max-w-6xl mx-auto space-y-8">
         <Card>
           <CardHeader>
@@ -407,11 +473,11 @@ const ChessAnalyzer = () => {
             </TabsList>
             <TabsContent value="overview">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
-                <Card>
+                <Card className="dark:bg-black/10">
                   <CardHeader>
-                    <CardTitle className="text-lg">Results</CardTitle>
+                    <CardTitle className="text-lg dark:text-gray-100">Results</CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="dark:text-gray-200">
                     <div className="space-y-2">
                       <p>
                         Total Games:{" "}
@@ -427,11 +493,11 @@ const ChessAnalyzer = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="dark:bg-black/10">
                   <CardHeader>
-                    <CardTitle className="text-lg">Game Types</CardTitle>
+                    <CardTitle className="text-lg dark:text-gray-100">Game Types</CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="dark:text-gray-200">
                     <div className="space-y-2">
                       {Object.entries(stats.gameTypes).map(([type, count]) => (
                         <p key={type}>
@@ -442,11 +508,11 @@ const ChessAnalyzer = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="dark:bg-black/10">
                   <CardHeader>
-                    <CardTitle className="text-lg">Streaks</CardTitle>
+                    <CardTitle className="text-lg dark:text-gray-100">Streaks</CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="dark:text-gray-200">
                     <div className="space-y-2">
                       <p>Longest Win Streak: {stats.streaks.winStreak}</p>
                       <p>Longest Loss Streak: {stats.streaks.lossStreak}</p>
@@ -455,11 +521,11 @@ const ChessAnalyzer = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="dark:bg-black/10">
                   <CardHeader>
-                    <CardTitle className="text-lg">Color Statistics</CardTitle>
+                    <CardTitle className="text-lg dark:text-gray-100">Color Statistics</CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="dark:text-gray-200">
                     <div className="space-y-2">
                       <div>
                         <p className="font-medium">White:</p>
@@ -476,13 +542,13 @@ const ChessAnalyzer = () => {
                     </div>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card className="dark:bg-black/10">
                   <CardHeader>
-                    <CardTitle className="text-lg">
+                    <CardTitle className="text-lg dark:text-gray-100">
                       Result Distribution by Game Length
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="dark:text-gray-200">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <h3 className="font-medium">Wins</h3>
@@ -627,14 +693,25 @@ const ChessAnalyzer = () => {
                               day: "numeric",
                             })
                           }
+                          label={{
+                            value: "Months",
+                            position: "bottom",
+                            dy: -5
+                          }}
                         />
-                        <YAxis domain={["dataMin - 50", "dataMax + 50"]} />
+                        <YAxis domain={["dataMin - 50", "dataMax + 50"]} label={{
+                          value: "Ratings",
+                          angle: -90,
+                          position: "bottom",
+                          dx: -35,
+                          dy: -90
+                        }} />
                         <Tooltip
                           content={({ active, payload }) => {
                             if (active && payload && payload.length) {
                               const data = payload[0].payload;
                               return (
-                                <div className="bg-white p-3 border rounded-lg shadow-lg">
+                                <div className="bg-background text-foreground p-3 border rounded-lg shadow-lg">
                                   <p className="font-bold">
                                     {new Date(data.date).toLocaleDateString(
                                       "en-US",
@@ -665,7 +742,15 @@ const ChessAnalyzer = () => {
                         <Brush
                           dataKey="date"
                           height={30}
-                          stroke="#8884d8"
+                          stroke={theme === "dark" ? "#64748b" : "#8884d8"} // slate-500 in dark, original in light
+                          fill={theme === "dark" ? "#1e293b" : "#f1f5f9"} // slate-800 in dark, slate-50 in light
+                          traveller={(props) => (
+                            <rect
+                              {...props}
+                              fill={theme === "dark" ? "#64748b" : "#8884d8"} // Handle color
+                              stroke={theme === "dark" ? "#94a3b8" : "#cbd5e1"} // Handle border
+                            />
+                          )}
                           startIndex={Math.max(
                             0,
                             (selectedGameType === "All"
@@ -710,19 +795,29 @@ const ChessAnalyzer = () => {
                 <CardContent>
                   <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={stats.headToHead}>
+                      <BarChart data={stats.headToHead} style={{
+                        color: 'hsl(var(--foreground))',
+                        fill: 'hsl(var(--foreground))'
+                      }}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis
                           dataKey="opponent"
-                          angle={-45}
-                          textAnchor="end"
-                          height={80}
+                          height={50}
+                          tick={renderCustomizedTick}
+                          interval={0}
                         />
-                        <YAxis yAxisId="left" />
+                        <YAxis yAxisId="left" label={{
+                          value: "Games Played",
+                          angle: -90,
+                          position: "bottom",
+                          dx: -30,
+                          dy: -90
+                        }} />
                         <YAxis
                           yAxisId="right"
                           orientation="right"
                           domain={[0, 100]}
+                          label={{ value: "Win Rate %", angle: 90, position: "insideRight", dx: -10, dy: 70 }}
                         />
                         <Tooltip content={<CustomTooltip />} />
                         <Legend />
@@ -741,7 +836,15 @@ const ChessAnalyzer = () => {
                         <Brush
                           dataKey="opponent"
                           height={30}
-                          stroke="#8884d8"
+                          stroke={theme === "dark" ? "#64748b" : "#8884d8"} // slate-500 in dark, original in light
+                          fill={theme === "dark" ? "#1e293b" : "#f1f5f9"} // slate-800 in dark, slate-50 in light
+                          traveller={(props) => (
+                            <rect
+                              {...props}
+                              fill={theme === "dark" ? "#64748b" : "#8884d8"} // Handle color
+                              stroke={theme === "dark" ? "#94a3b8" : "#cbd5e1"} // Handle border
+                            />
+                          )}
                           startIndex={0}
                           endIndex={10}
                         />
