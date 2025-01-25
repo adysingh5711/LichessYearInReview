@@ -1,5 +1,5 @@
 import { GameStats } from "@/types/chess";
-import { categorizeTimeControl } from "./pgn-parser";
+import { categorizeTimeControl, parsePGNDate } from "./pgn-parser";
 import { AnalysisStats } from "@/types/chess";
 
 export const analyzeGames = (
@@ -31,9 +31,9 @@ export const analyzeGames = (
   let currentDrawStreak = 0;
 
   const gameLengths = {
-    wins: [] as number[],
-    losses: [] as number[],
-    draws: [] as number[],
+    wins: { sum: 0, count: 0, min: Infinity, max: -Infinity },
+    losses: { sum: 0, count: 0, min: Infinity, max: -Infinity },
+    draws: { sum: 0, count: 0, min: Infinity, max: -Infinity },
   };
 
   const monthlyStats: Record<
@@ -110,14 +110,6 @@ export const analyzeGames = (
     stats.streaks.lossStreak = Math.max(stats.streaks.lossStreak, currentLossStreak);
     stats.streaks.drawStreak = Math.max(stats.streaks.drawStreak, currentDrawStreak);
 
-    // Process game length
-    const gameLength = game.moves.length;
-    stats.gameLengths.push({ length: gameLength, result: game.result });
-    if (gameLength > 1) {
-      if (isWin) gameLengths.wins.push(gameLength);
-      else if (isDraw) gameLengths.draws.push(gameLength);
-      else gameLengths.losses.push(gameLength);
-    }
 
     // Monthly performance
     if (game.date) {
@@ -167,6 +159,26 @@ export const analyzeGames = (
       else if (isDraw) headToHeadStats[opponent].draws++;
       else headToHeadStats[opponent].losses++;
       headToHeadStats[opponent].lastPlayed = new Date(game.date || new Date());
+
+      const gameLength = game.moves.length;
+      if (gameLength > 0) {
+        if (isWin) {
+          gameLengths.wins.sum += gameLength;
+          gameLengths.wins.count++;
+          gameLengths.wins.min = Math.min(gameLengths.wins.min, gameLength);
+          gameLengths.wins.max = Math.max(gameLengths.wins.max, gameLength);
+        } else if (isDraw) {
+          gameLengths.draws.sum += gameLength;
+          gameLengths.draws.count++;
+          gameLengths.draws.min = Math.min(gameLengths.draws.min, gameLength);
+          gameLengths.draws.max = Math.max(gameLengths.draws.max, gameLength);
+        } else {
+          gameLengths.losses.sum += gameLength;
+          gameLengths.losses.count++;
+          gameLengths.losses.min = Math.min(gameLengths.losses.min, gameLength);
+          gameLengths.losses.max = Math.max(gameLengths.losses.max, gameLength);
+        }
+      }
     }
   });
 
@@ -210,10 +222,10 @@ export const analyzeGames = (
     .sort((a, b) => b.games - a.games);
 
   // Calculate result distribution
-  const calculateStats = (arr: number[]) => ({
-    average: arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0,
-    shortest: arr.length ? Math.min(...arr) : 0,
-    longest: arr.length ? Math.max(...arr) : 0,
+  const calculateStats = (data: { sum: number; count: number; min: number; max: number }) => ({
+    average: data.count ? data.sum / data.count : 0,
+    shortest: data.count ? data.min : 0,
+    longest: data.count ? data.max : 0,
   });
 
   stats.resultDistribution = {
@@ -222,8 +234,6 @@ export const analyzeGames = (
     draws: calculateStats(gameLengths.draws),
   };
 
-  // Sort rating progression chronologically
-  stats.ratingProgression.sort((a, b) => a.date.getTime() - b.date.getTime());
 
   return stats;
 };

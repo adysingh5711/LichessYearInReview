@@ -1,11 +1,10 @@
-// types/chess.ts
 export interface GameStats {
   timeControl: string;
   result: string;
   white: string;
   black: string;
   opening?: string;
-  date?: string;
+  date?: Date;
   whiteElo?: string;
   blackElo?: string;
   whiteRatingDiff?: string;

@@ -18,6 +18,14 @@ export const categorizeTimeControl = (timeControl: string): string => {
   }
 };
 
+export function parsePGNDate(dateStr: string): Date {
+  const parts = (dateStr || '').split('.');
+  const year = parseInt(parts[0], 10) || 2000;
+  const month = (parseInt(parts[1], 10) - 1) || 0; // Months are 0-indexed
+  const day = parseInt(parts[2], 10) || 1;
+  return new Date(year, month, day);
+}
+
 export const parseGame = (pgnText: string): GameStats[] => {
   const games: GameStats[] = [];
   const chess = new Chess();
@@ -46,7 +54,7 @@ export const parseGame = (pgnText: string): GameStats[] => {
         white: headers.White,
         black: headers.Black,
         opening: headers.Opening || "Unknown Opening",
-        date: headers.Date || new Date().toISOString().split("T")[0],
+        date: headers.Date ? parsePGNDate(headers.Date) : new Date(),
         whiteElo: headers.WhiteElo || "0",
         blackElo: headers.BlackElo || "0",
         whiteRatingDiff: headers.WhiteRatingDiff || "0",
@@ -58,6 +66,6 @@ export const parseGame = (pgnText: string): GameStats[] => {
       continue;
     }
   }
-
+  games.sort((a, b) => a.date!.getTime() - b.date!.getTime());
   return games;
 };
