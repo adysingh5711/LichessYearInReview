@@ -24,6 +24,7 @@ export const analyzeGames = (
       White: { wins: 0, losses: 0, draws: 0 },
       Black: { wins: 0, losses: 0, draws: 0 },
     },
+    peakRatings: {},
   };
 
   let currentWinStreak = 0;
@@ -50,6 +51,8 @@ export const analyzeGames = (
     string,
     { count: number; wins: number; losses: number; draws: number }
   > = {};
+
+  const peakRatings: Record<string, number> = {};
 
   // Main processing loop
   games.forEach((game) => {
@@ -234,6 +237,13 @@ export const analyzeGames = (
     draws: calculateStats(gameLengths.draws),
   };
 
+  // After processing games, calculate peak ratings:
+  Object.keys(stats.gameTypes).forEach(gameType => {
+    const ratings = stats.ratingProgression
+      .filter(r => r.gameType === gameType)
+      .map(r => r.rating);
+    peakRatings[gameType] = Math.max(...ratings, 0);
+  });
 
   return stats;
 };

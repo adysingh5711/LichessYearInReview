@@ -51,4 +51,5 @@ export interface AnalysisStats {
     White: { wins: number; losses: number; draws: number };
     Black: { wins: number; losses: number; draws: number };
   };
+  peakRatings: Record<string, number>;
 }

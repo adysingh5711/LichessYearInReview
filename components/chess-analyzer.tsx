@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, ChangeEvent } from "react";
+import React, { useState, useEffect, ChangeEvent, useRef } from "react";
 import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
+import { toPng } from 'html-to-image';
 
 // UI components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 // Chart components
 import {
@@ -74,16 +77,40 @@ const ChessAnalyzer = () => {
   const [stats, setStats] = useState<AnalysisStats | null>(null);
   const [error, setError] = useState("");
   const [selectedGameType, setSelectedGameType] = useState<string>("All");
+  const [showShareModal, setShowShareModal] = useState(false);
   const { theme } = useTheme();
+  const router = useRouter();
+
+  // Calculated values
+  const totalGames = stats
+    ? stats.results.wins + stats.results.losses + stats.results.draws
+    : 0;
+
+  const mostPlayedOpening = stats?.openings?.length
+    ? [...stats.openings].sort((a, b) => b.count - a.count)[0]
+    : { name: "N/A", count: 0 };
+
+  const filteredOpponents = stats?.headToHead?.length
+    ? stats.headToHead.filter(o =>
+      !o.opponent?.toLowerCase().includes('lichess ai') &&
+      !o.opponent?.toLowerCase().includes('bot')
+    )
+    : [];
+
+  const bestWinRateMonth = stats?.monthlyPerformance?.length
+    ? [...stats.monthlyPerformance].sort((a, b) => b.winRate - a.winRate)[0]
+    : { month: "N/A", winRate: 0 };
+
+  const peakRating = stats?.ratingProgression?.length
+    ? Math.max(...stats.ratingProgression.map(r => r.rating))
+    : 0;
 
   useEffect(() => {
     if (stats) {
       // Find most played game type
       const gameTypes = Object.entries(stats.gameTypes);
       if (gameTypes.length > 0) {
-        const mostPlayed = gameTypes.reduce((a, b) =>
-          a[1] > b[1] ? a : b
-        )[0];
+        const mostPlayed = gameTypes.reduce((a, b) => a[1] > b[1] ? a : b)[0];
         setSelectedGameType(mostPlayed);
       }
     }
@@ -91,7 +118,7 @@ const ChessAnalyzer = () => {
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    if (selectedFile && selectedFile.name.endsWith(".pgn")) {
+    if (selectedFile?.name.endsWith(".pgn")) {
       setFile(selectedFile);
       setError("");
     } else {
@@ -119,23 +146,66 @@ const ChessAnalyzer = () => {
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-
-      const analysisResults = await response.json();
-      setStats(analysisResults);
+      if (!response.ok) throw new Error(await response.text());
+      setStats(await response.json());
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to analyze games. Please try again."
-      );
+      setError(err instanceof Error ? err.message : "Failed to analyze games");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleShare = () => stats && setShowShareModal(true);
+
+  const handleDownload = async () => {
+    const cardElement = document.getElementById('share-card');
+    if (!cardElement) return;
+
+    try {
+      const dataUrl = await toPng(cardElement, {
+        backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
+        pixelRatio: 2,
+        cacheBust: true,
+        filter: (node) => {
+          // Exclude the download button from the image
+          return !(node instanceof HTMLElement && node.id === 'download-button');
+        },
+        style: {
+          transform: 'none', // Disable any transforms
+          contain: 'strict' // Prevent layout shifts
+        }
+      });
+
+      const link = document.createElement('a');
+      link.download = `chess-year-review-${username}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error('Error generating image:', error);
+    }
+  };
+
+  const StatBlock = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div className="space-y-2">
+      <h3 className="text-sm font-semibold text-primary">{title}</h3>
+      <div className="space-y-1 text-sm">{children}</div>
+    </div>
+  );
+
+  const StatItem = ({ label, value, truncate }: {
+    label: string;
+    value: string | number;
+    truncate?: boolean
+  }) => (
+    <div className="flex justify-between">
+      <span className="text-muted-foreground">{label}:</span>
+      <span className={`font-medium ${truncate ? 'max-w-[120px] truncate' : ''}`}>
+        {value || '-'}
+      </span>
+    </div>
+  );
+
+  // Chart rendering functions remain the same
   const renderWinRateChart = (data: AnalysisStats["monthlyPerformance"]) => (
     <ResponsiveContainer width="100%" height={300}>
       <ComposedChart data={data}>
@@ -220,7 +290,7 @@ const ChessAnalyzer = () => {
     return null;
   };
 
-  const renderCustomizedTick = (props: any) => {
+  const renderCustomizedTick = (props: { x: number; y: number; payload: { value: string } }) => {
     const { x, y, payload } = props;
     const maxLineLength = 15; // Characters per line
     const maxLines = 3;
@@ -433,15 +503,11 @@ const ChessAnalyzer = () => {
                 </div>
               </div>
 
-              <div className="flex justify-center">
-                <Button
-                  onClick={handleAnalyze}
-                  disabled={loading}
-                  className="w-40"
-                >
+              <div className="flex justify-center gap-4">
+                <Button onClick={handleAnalyze} disabled={loading} className="w-40">
                   {loading ? (
                     <div className="flex items-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white dark:border-gray-300" />
                       Analyzing...
                     </div>
                   ) : (
@@ -451,6 +517,15 @@ const ChessAnalyzer = () => {
                     </div>
                   )}
                 </Button>
+
+                {stats && (
+                  <Button
+                    onClick={handleShare}
+                    className="w-48 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                  >
+                    Share Your Chess Year
+                  </Button>
+                )}
               </div>
 
               {error && (
@@ -461,6 +536,8 @@ const ChessAnalyzer = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Tabs and other content remain the same */}
 
         {stats && (
           <Tabs defaultValue="overview" className="space-y-4">
@@ -855,6 +932,110 @@ const ChessAnalyzer = () => {
               </Card>
             </TabsContent>
           </Tabs>
+        )}
+        {stats && (
+          <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+            <DialogContent className="max-w-md p-0 border-0 overflow-visible bg-transparent">
+              <div className="fixed inset-0 bg-black/30 backdrop-blur-lg" />
+              <div className="relative flex items-center justify-center min-h-screen p-4">
+                <div
+                  className="w-full max-w-[400px] h-[90vh] bg-background rounded-xl shadow-2xl p-6 border relative flex flex-col"
+                  id="share-card"
+                  style={{
+                    background: 'linear-gradient(to bottom, hsl(var(--background)), hsl(var(--secondary)/0.3))',
+                  }}
+                >
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-purple-500/20 to-pink-500/20 z-0" />
+
+                  {/* Card Header */}
+                  <div className="relative z-10 flex flex-col gap-2 mb-4">
+                    <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                      CHESS YEAR IN REVIEW
+                    </h1>
+                    <p className="text-xs text-muted-foreground">
+                      {username} • {new Date().getFullYear()} Summary
+                    </p>
+                  </div>
+
+                  {/* Card Content - Vertical Layout */}
+                  <div className="relative z-10 flex-1 grid grid-cols-1 gap-4 overflow-y-auto">
+                    <div className="space-y-4">
+                      <StatBlock title="Results">
+                        <div className="grid grid-cols-2 gap-2">
+                          <StatItem label="Total" value={totalGames} />
+                          <StatItem label="Wins" value={stats.results.wins} />
+                          <StatItem label="Losses" value={stats.results.losses} />
+                          <StatItem label="Draws" value={stats.results.draws} />
+                        </div>
+                      </StatBlock>
+
+                      <StatBlock title="Performance">
+                        <div className="grid grid-cols-2 gap-2">
+                          <StatItem label="Peak Rating" value={peakRating} />
+                          <StatItem label="Best Streak" value={stats.streaks.winStreak} />
+                        </div>
+                      </StatBlock>
+
+                      <StatBlock title="Openings">
+                        <div className="space-y-1">
+                          <StatItem label="Most Played" value={mostPlayedOpening?.name} truncate />
+                          <StatItem
+                            label="Best Win Rate"
+                            value={[...stats.openings]
+                              .filter(o => o.count > 10)
+                              .sort((a, b) => b.winRate - a.winRate)[0]?.name}
+                            truncate
+                          />
+                        </div>
+                      </StatBlock>
+
+                      <StatBlock title="Colors">
+                        <div className="grid grid-cols-2 gap-2">
+                          <StatItem label="White Wins" value={stats.colorStats.White.wins} />
+                          <StatItem label="Black Wins" value={stats.colorStats.Black.wins} />
+                        </div>
+                      </StatBlock>
+
+                      <StatBlock title="Opponents">
+                        <div className="space-y-1">
+                          <StatItem label="Most Played" value={filteredOpponents[0]?.opponent} truncate />
+                          <StatItem
+                            label="Most Wins Against"
+                            value={[...filteredOpponents].sort((a, b) => b.wins - a.wins)[0]?.opponent}
+                            truncate
+                          />
+                        </div>
+                      </StatBlock>
+
+                      <StatBlock title="Monthly Best">
+                        <div className="grid grid-cols-2 gap-2">
+                          <StatItem label="Month" value={bestWinRateMonth.month} />
+                          <StatItem label="Win Rate" value={`${bestWinRateMonth.winRate.toFixed(1)}%`} />
+                        </div>
+                      </StatBlock>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="relative z-10 border-t pt-4 mt-4">
+                    <p className="text-xs text-muted-foreground text-center">
+                      Made with ❤️ by Opensource
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  id="download-button"
+                  onClick={handleDownload}
+                  size="sm"
+                  className="absolute bottom-4 right-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-xs shadow-lg"
+                >
+                  Download
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         )}
       </div>
     </div>
