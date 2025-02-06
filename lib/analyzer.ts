@@ -1,11 +1,11 @@
-import { GameStats } from "@/types/chess";
+import { GameStats, AnalysisStats } from "@/types/chess";
 import { categorizeTimeControl, parsePGNDate } from "./pgn-parser";
-import { AnalysisStats } from "@/types/chess";
 
 export const analyzeGames = (
   games: GameStats[],
   username: string
 ): AnalysisStats => {
+  // Initialize the stats object.
   const stats: AnalysisStats = {
     gameTypes: {},
     results: { wins: 0, losses: 0, draws: 0 },
@@ -27,165 +27,173 @@ export const analyzeGames = (
     peakRatings: {},
   };
 
+  // Streak tracking
   let currentWinStreak = 0;
   let currentLossStreak = 0;
   let currentDrawStreak = 0;
 
+  // For accumulating game lengths per result
   const gameLengths = {
     wins: { sum: 0, count: 0, min: Infinity, max: -Infinity },
     losses: { sum: 0, count: 0, min: Infinity, max: -Infinity },
     draws: { sum: 0, count: 0, min: Infinity, max: -Infinity },
   };
 
-  const monthlyStats: Record<
-    string,
-    { games: number; wins: number; ratingChange: number }
-  > = {};
-
+  // Aggregation objects for monthly stats, head-to-head, and openings.
+  const monthlyStats: Record<string, { games: number; wins: number; ratingChange: number }> = {};
   const headToHeadStats: Record<
     string,
-    { wins: 0; losses: 0; draws: 0; lastPlayed: Date }
+    { wins: number; losses: number; draws: number; lastPlayed: Date }
   > = {};
-
   const openingStats: Record<
     string,
     { count: number; wins: number; losses: number; draws: number }
   > = {};
-
   const peakRatings: Record<string, number> = {};
 
-  // Main processing loop
-  games.forEach((game) => {
+  // Process each game using a for-of loop.
+  for (const game of games) {
+    // Categorize game by time control.
     const timeControl = categorizeTimeControl(game.timeControl);
     stats.gameTypes[timeControl] = (stats.gameTypes[timeControl] || 0) + 1;
 
-    // Process game result
     const isWhite = game.white === username;
     let isWin = false;
     let isDraw = false;
 
-    // Result processing
-    if (game.result === "1-0") {
-      if (isWhite) {
-        stats.results.wins++;
-        stats.colorStats.White.wins++;
-        currentWinStreak++;
-        currentLossStreak = 0;
-        currentDrawStreak = 0;
-        isWin = true;
-      } else {
-        stats.results.losses++;
-        stats.colorStats.Black.losses++;
-        currentLossStreak++;
-        currentWinStreak = 0;
-        currentDrawStreak = 0;
-      }
-    } else if (game.result === "0-1") {
-      if (!isWhite) {
-        stats.results.wins++;
-        stats.colorStats.Black.wins++;
-        currentWinStreak++;
-        currentLossStreak = 0;
-        currentDrawStreak = 0;
-        isWin = true;
-      } else {
-        stats.results.losses++;
-        stats.colorStats.White.losses++;
-        currentLossStreak++;
-        currentWinStreak = 0;
-        currentDrawStreak = 0;
-      }
-    } else if (game.result === "1/2-1/2") {
-      stats.results.draws++;
-      currentDrawStreak++;
-      currentWinStreak = 0;
-      currentLossStreak = 0;
-      isDraw = true;
-      if (isWhite) {
-        stats.colorStats.White.draws++;
-      } else {
-        stats.colorStats.Black.draws++;
-      }
+    // Process game result using a switch to consolidate similar logic.
+    switch (game.result) {
+      case "1-0":
+        if (isWhite) {
+          stats.results.wins++;
+          stats.colorStats.White.wins++;
+          currentWinStreak++;
+          currentLossStreak = currentDrawStreak = 0;
+          isWin = true;
+        } else {
+          stats.results.losses++;
+          stats.colorStats.Black.losses++;
+          currentLossStreak++;
+          currentWinStreak = currentDrawStreak = 0;
+        }
+        break;
+      case "0-1":
+        if (!isWhite) {
+          stats.results.wins++;
+          stats.colorStats.Black.wins++;
+          currentWinStreak++;
+          currentLossStreak = currentDrawStreak = 0;
+          isWin = true;
+        } else {
+          stats.results.losses++;
+          stats.colorStats.White.losses++;
+          currentLossStreak++;
+          currentWinStreak = currentDrawStreak = 0;
+        }
+        break;
+      case "1/2-1/2":
+        stats.results.draws++;
+        if (isWhite) {
+          stats.colorStats.White.draws++;
+        } else {
+          stats.colorStats.Black.draws++;
+        }
+        currentDrawStreak++;
+        currentWinStreak = currentLossStreak = 0;
+        isDraw = true;
+        break;
     }
-
-    // Update streaks
+    // Update max streaks.
     stats.streaks.winStreak = Math.max(stats.streaks.winStreak, currentWinStreak);
     stats.streaks.lossStreak = Math.max(stats.streaks.lossStreak, currentLossStreak);
     stats.streaks.drawStreak = Math.max(stats.streaks.drawStreak, currentDrawStreak);
 
-
-    // Monthly performance
+    // If the game has a date, compute it once and use it in multiple places.
     if (game.date) {
-      const month = new Date(game.date).toISOString().slice(0, 7);
+      const gameDate = new Date(game.date); // Cached Date object.
+      const month = gameDate.toISOString().slice(0, 7);
       if (!monthlyStats[month]) {
         monthlyStats[month] = { games: 0, wins: 0, ratingChange: 0 };
       }
       monthlyStats[month].games++;
       if (isWin) {
         monthlyStats[month].wins++;
+        // Compute rating difference once.
         const ratingDiff = isWhite
-          ? parseInt(game.whiteRatingDiff || "0")
-          : parseInt(game.blackRatingDiff || "0");
+          ? parseInt(game.whiteRatingDiff || "0", 10)
+          : parseInt(game.blackRatingDiff || "0", 10);
         monthlyStats[month].ratingChange += ratingDiff;
       }
-    }
-
-    // Rating progression
-    if (game.date) {
+      // Record rating progression.
       const rating = isWhite
-        ? parseInt(game.whiteElo || "0")
-        : parseInt(game.blackElo || "0");
+        ? parseInt(game.whiteElo || "0", 10)
+        : parseInt(game.blackElo || "0", 10);
       stats.ratingProgression.push({
-        date: new Date(game.date),
+        date: gameDate,
         rating,
         gameType: timeControl,
       });
+      // Update peak rating for this time control.
+      if (!peakRatings[timeControl] || rating > peakRatings[timeControl]) {
+        peakRatings[timeControl] = rating;
+      }
     }
 
-    // Openings tracking
+    // Process openings.
     const opening = game.opening || "Unknown";
     if (!openingStats[opening]) {
       openingStats[opening] = { count: 0, wins: 0, losses: 0, draws: 0 };
     }
     openingStats[opening].count++;
-    if (isWin) openingStats[opening].wins++;
-    else if (isDraw) openingStats[opening].draws++;
-    else openingStats[opening].losses++;
+    if (isWin) {
+      openingStats[opening].wins++;
+    } else if (isDraw) {
+      openingStats[opening].draws++;
+    } else {
+      openingStats[opening].losses++;
+    }
 
-    // Head-to-head tracking
+    // Process head-to-head statistics.
     const opponent = isWhite ? game.black : game.white;
     if (opponent) {
       if (!headToHeadStats[opponent]) {
-        headToHeadStats[opponent] = { wins: 0, losses: 0, draws: 0, lastPlayed: new Date() };
+        headToHeadStats[opponent] = { wins: 0, losses: 0, draws: 0, lastPlayed: new Date(0) };
       }
-      if (isWin) headToHeadStats[opponent].wins++;
-      else if (isDraw) headToHeadStats[opponent].draws++;
-      else headToHeadStats[opponent].losses++;
-      headToHeadStats[opponent].lastPlayed = new Date(game.date || new Date());
+      if (isWin) {
+        headToHeadStats[opponent].wins++;
+      } else if (isDraw) {
+        headToHeadStats[opponent].draws++;
+      } else {
+        headToHeadStats[opponent].losses++;
+      }
+      // Reuse game date if available.
+      const opponentDate = game.date ? new Date(game.date) : new Date();
+      headToHeadStats[opponent].lastPlayed = opponentDate;
+    }
 
-      const gameLength = game.moves.length;
-      if (gameLength > 0) {
-        if (isWin) {
-          gameLengths.wins.sum += gameLength;
-          gameLengths.wins.count++;
-          gameLengths.wins.min = Math.min(gameLengths.wins.min, gameLength);
-          gameLengths.wins.max = Math.max(gameLengths.wins.max, gameLength);
-        } else if (isDraw) {
-          gameLengths.draws.sum += gameLength;
-          gameLengths.draws.count++;
-          gameLengths.draws.min = Math.min(gameLengths.draws.min, gameLength);
-          gameLengths.draws.max = Math.max(gameLengths.draws.max, gameLength);
-        } else {
-          gameLengths.losses.sum += gameLength;
-          gameLengths.losses.count++;
-          gameLengths.losses.min = Math.min(gameLengths.losses.min, gameLength);
-          gameLengths.losses.max = Math.max(gameLengths.losses.max, gameLength);
-        }
+    // Process game lengths: compute once.
+    const gameLength = game.moves ? game.moves.length : 0;
+    if (gameLength > 0) {
+      if (isWin) {
+        gameLengths.wins.sum += gameLength;
+        gameLengths.wins.count++;
+        gameLengths.wins.min = Math.min(gameLengths.wins.min, gameLength);
+        gameLengths.wins.max = Math.max(gameLengths.wins.max, gameLength);
+      } else if (isDraw) {
+        gameLengths.draws.sum += gameLength;
+        gameLengths.draws.count++;
+        gameLengths.draws.min = Math.min(gameLengths.draws.min, gameLength);
+        gameLengths.draws.max = Math.max(gameLengths.draws.max, gameLength);
+      } else {
+        gameLengths.losses.sum += gameLength;
+        gameLengths.losses.count++;
+        gameLengths.losses.min = Math.min(gameLengths.losses.min, gameLength);
+        gameLengths.losses.max = Math.max(gameLengths.losses.max, gameLength);
       }
     }
-  });
+  }
 
-  // Transform monthly stats
+  // Transform monthlyStats into an array sorted by month.
   stats.monthlyPerformance = Object.entries(monthlyStats)
     .map(([month, data]) => ({
       month,
@@ -196,7 +204,7 @@ export const analyzeGames = (
     }))
     .sort((a, b) => a.month.localeCompare(b.month));
 
-  // Transform openings data
+  // Transform openings into an array sorted by descending count.
   stats.openings = Object.entries(openingStats)
     .map(([name, data]) => ({
       name,
@@ -208,7 +216,7 @@ export const analyzeGames = (
     }))
     .sort((a, b) => b.count - a.count);
 
-  // Transform head-to-head data
+  // Transform head-to-head statistics.
   stats.headToHead = Object.entries(headToHeadStats)
     .map(([opponent, record]) => {
       const totalGames = record.wins + record.losses + record.draws;
@@ -224,7 +232,7 @@ export const analyzeGames = (
     })
     .sort((a, b) => b.games - a.games);
 
-  // Calculate result distribution
+  // Helper: calculate average, shortest, and longest game lengths.
   const calculateStats = (data: { sum: number; count: number; min: number; max: number }) => ({
     average: data.count ? data.sum / data.count : 0,
     shortest: data.count ? data.min : 0,
@@ -237,13 +245,7 @@ export const analyzeGames = (
     draws: calculateStats(gameLengths.draws),
   };
 
-  // After processing games, calculate peak ratings:
-  Object.keys(stats.gameTypes).forEach(gameType => {
-    const ratings = stats.ratingProgression
-      .filter(r => r.gameType === gameType)
-      .map(r => r.rating);
-    peakRatings[gameType] = Math.max(...ratings, 0);
-  });
+  stats.peakRatings = peakRatings;
 
   return stats;
 };

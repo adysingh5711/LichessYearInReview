@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, ChangeEvent, useRef } from "react";
+import React, { useState, useEffect, ChangeEvent, useMemo } from "react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { toPng } from 'html-to-image';
@@ -205,7 +205,7 @@ const ChessAnalyzer = () => {
     </div>
   );
 
-  // Chart rendering functions remain the same
+  // Chart rendering functions
   const renderWinRateChart = (data: AnalysisStats["monthlyPerformance"]) => (
     <ResponsiveContainer width="100%" height={300}>
       <ComposedChart data={data}>
@@ -459,6 +459,23 @@ const ChessAnalyzer = () => {
     return null;
   };
 
+  //using useMemo to optimise time function
+  const openingsByCount = useMemo(() =>
+    stats?.openings ? [...stats.openings].sort((a, b) => b.count - a.count) : []
+    , [stats]);
+
+  const openingsByWins = useMemo(() =>
+    stats?.openings ? [...stats.openings].sort((a, b) => b.wins - a.wins) : []
+    , [stats]);
+
+  const openingsByWinRate = useMemo(() =>
+    stats?.openings ? [...stats.openings].sort((a, b) => b.winRate - a.winRate) : []
+    , [stats]);
+
+  const headToHeadSorted = useMemo(() =>
+    stats?.headToHead ? [...stats.headToHead].sort((a, b) => b.games - a.games) : []
+    , [stats]);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black/10 p-8 scrollbar-dark">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -692,27 +709,17 @@ const ChessAnalyzer = () => {
 
                     <TabsContent value="mostPlayed">
                       <div className="h-[300px]">
-                        {renderOpeningsChart(
-                          [...stats.openings].sort((a, b) => b.count - a.count)
-                        )}
+                        {renderOpeningsChart(openingsByCount)}
                       </div>
                     </TabsContent>
-
                     <TabsContent value="mostWins">
                       <div className="h-[300px]">
-                        {renderOpeningsChart(
-                          [...stats.openings].sort((a, b) => b.wins - a.wins)
-                        )}
+                        {renderOpeningsChart(openingsByWins)}
                       </div>
                     </TabsContent>
-
                     <TabsContent value="bestRate">
                       <div className="h-[300px]">
-                        {renderOpeningsChart(
-                          [...stats.openings].sort(
-                            (a, b) => b.winRate - a.winRate
-                          )
-                        )}
+                        {renderOpeningsChart(openingsByWinRate)}
                       </div>
                     </TabsContent>
 
