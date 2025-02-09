@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { MagicCard } from "@/components/ui/magic-card";
+import { ChartMagicCard } from "@/components/ui/chart-magic-card";
 
 // Chart components
 import {
@@ -488,7 +489,7 @@ const ChessAnalyzer = () => {
                   href="https://github.com/adysingh5711/LichessYearInReview"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-2 hover:bg-accent rounded-full transition-colors"
+                  className="p-2 hover:bg-accent rounded-md transition-colors border aspect-square flex items-center justify-center"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -513,7 +514,7 @@ const ChessAnalyzer = () => {
               </h1>
             </div>
           </CardHeader>
-          <MagicCard
+          <ChartMagicCard
             className="p-6 shadow-2xl"
             gradientColor={theme === "dark" ? "#262626" : "#f3f4f6"}
           >
@@ -524,7 +525,7 @@ const ChessAnalyzer = () => {
                     <label className="block text-sm font-medium mb-2 text-muted-foreground">
                       Username
                     </label>
-                    <div className="relative group">
+                    <div className="relative group z-20">
                       <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg transition-opacity opacity-0 group-hover:opacity-100" />
                       <div className="relative flex gap-2 items-center bg-background/50 backdrop-blur-sm rounded-lg p-2 border">
                         <User className="w-5 h-5 text-purple-600" />
@@ -541,7 +542,7 @@ const ChessAnalyzer = () => {
                     <label className="block text-sm font-medium mb-2 text-muted-foreground">
                       PGN File
                     </label>
-                    <div className="relative group">
+                    <div className="relative group z-20">
                       <label className="relative flex gap-2 items-center cursor-pointer bg-background/50 backdrop-blur-sm rounded-lg p-2 border hover:bg-accent transition-colors">
                         <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg transition-opacity opacity-0 group-hover:opacity-100" />
                         <Upload className="w-5 h-5 text-pink-600" />
@@ -591,7 +592,7 @@ const ChessAnalyzer = () => {
                 )}
               </div>
             </CardContent>
-          </MagicCard>
+          </ChartMagicCard>
         </Card>
 
 
@@ -699,11 +700,14 @@ const ChessAnalyzer = () => {
               </div>
             </TabsContent>
             <TabsContent value="openings">
-              <Card>
+              <ChartMagicCard
+                className="p-6 shadow-2xl"
+                gradientColor={theme === "dark" ? "#262626" : "#f3f4f6"}
+              >
                 <CardHeader>
                   <CardTitle>Opening Statistics</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="overflow-visible">
                   <Tabs defaultValue="mostPlayed">
                     <div className="flex justify-between items-center mb-4">
                       <TabsList>
@@ -712,9 +716,7 @@ const ChessAnalyzer = () => {
                         </TabsTrigger>
                         <TabsTrigger value="mostWins">Most Wins</TabsTrigger>
                         <TabsTrigger value="bestRate">Best Rate</TabsTrigger>
-                        <TabsTrigger value="mostLosses">
-                          Most Losses
-                        </TabsTrigger>
+                        <TabsTrigger value="mostLosses">Most Losses</TabsTrigger>
                       </TabsList>
                     </div>
 
@@ -733,7 +735,6 @@ const ChessAnalyzer = () => {
                         {renderOpeningsChart(openingsByWinRate)}
                       </div>
                     </TabsContent>
-
                     <TabsContent value="mostLosses">
                       <div className="h-[300px]">
                         {renderOpeningsChart(
@@ -745,18 +746,21 @@ const ChessAnalyzer = () => {
                     </TabsContent>
                   </Tabs>
                 </CardContent>
-              </Card>
+              </ChartMagicCard>
             </TabsContent>
 
             <TabsContent value="progression">
-              <Card>
+              <ChartMagicCard
+                className="p-6 shadow-2xl"
+                gradientColor={theme === "dark" ? "#262626" : "#f3f4f6"}
+              >
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Rating Progression</CardTitle>
                     <select
                       value={selectedGameType}
                       onChange={(e) => setSelectedGameType(e.target.value)}
-                      className="bg-background border rounded-md px-3 py-1 text-sm"
+                      className="bg-background border rounded-md px-3 py-1 text-sm z-20"  // Added z-20
                     >
                       <option value="All">All Game Types</option>
                       {stats && Object.keys(stats.gameTypes).map((type) => (
@@ -767,7 +771,7 @@ const ChessAnalyzer = () => {
                     </select>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="overflow-visible">
                   <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart
@@ -866,28 +870,34 @@ const ChessAnalyzer = () => {
                     </ResponsiveContainer>
                   </div>
                 </CardContent>
-              </Card>
+              </ChartMagicCard>
             </TabsContent>
 
             <TabsContent value="performance">
-              <Card>
+              <ChartMagicCard
+                className="p-6 shadow-2xl"
+                gradientColor={theme === "dark" ? "#262626" : "#f3f4f6"}
+              >
                 <CardHeader>
                   <CardTitle>Monthly Performance</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="overflow-visible">
                   <div className="h-[300px]">
                     {renderWinRateChart(stats.monthlyPerformance)}
                   </div>
                 </CardContent>
-              </Card>
+              </ChartMagicCard>
             </TabsContent>
 
             <TabsContent value="headToHead">
-              <Card>
+              <ChartMagicCard
+                className="p-6 shadow-2xl"
+                gradientColor={theme === "dark" ? "#262626" : "#f3f4f6"}
+              >
                 <CardHeader>
                   <CardTitle>Top Opponent Matchups</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="overflow-visible">
                   <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={stats.headToHead} style={{
@@ -947,7 +957,7 @@ const ChessAnalyzer = () => {
                     </ResponsiveContainer>
                   </div>
                 </CardContent>
-              </Card>
+              </ChartMagicCard>
             </TabsContent>
           </Tabs>
         )}
