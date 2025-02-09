@@ -971,7 +971,7 @@ const ChessAnalyzer = () => {
               <div className="fixed inset-0 bg-black/30 backdrop-blur-lg" />
               <div className="relative flex items-center justify-center min-h-screen p-4">
                 <div
-                  className="w-full max-w-[400px] h-[90vh] bg-background rounded-xl shadow-2xl p-6 border relative flex flex-col text-[hsl(272.49deg_100%_42.99%)] dark:text-[hsl(272.49deg_100%_82.99%)]"
+                  className="w-[360px] h-[640px] bg-background rounded-xl shadow-2xl p-6 border relative flex flex-col text-[hsl(272.49deg_100%_42.99%)] dark:text-[hsl(272.49deg_100%_82.99%)]"
                   id="share-card"
                   style={{
                     background: 'linear-gradient(to bottom, hsl(var(--background)), hsl(var(--secondary)/0.3))',
@@ -981,8 +981,8 @@ const ChessAnalyzer = () => {
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-purple-500/20 to-pink-500/20 z-0" />
 
                   {/* Card Header */}
-                  <div className="relative z-10 flex flex-col gap-2 mb-4">
-                    <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  <div className="relative z-10 flex flex-col gap-1 mb-3">
+                    <h1 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                       CHESS YEAR IN REVIEW
                     </h1>
                     <p className="text-xs text-[hsl(var(--primary))] dark:text-[hsl(var(--primary))] font-medium">
@@ -991,10 +991,10 @@ const ChessAnalyzer = () => {
                   </div>
 
                   {/* Card Content - Vertical Layout */}
-                  <div className="relative z-10 flex-1 grid grid-cols-1 gap-4 overflow-y-auto">
-                    <div className="space-y-4">
+                  <div className="relative z-10 flex-1 grid grid-cols-1 gap-3 overflow-hidden">
+                    <div className="space-y-3">
                       <StatBlock title="Results">
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-1.5">
                           <StatItem label="Total" value={totalGames} />
                           <StatItem label="Wins" value={stats.results.wins} />
                           <StatItem label="Losses" value={stats.results.losses} />
@@ -1003,7 +1003,7 @@ const ChessAnalyzer = () => {
                       </StatBlock>
 
                       <StatBlock title="Performance">
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-1.5">
                           <StatItem label="Peak Rating" value={peakRating} />
                           <StatItem label="Best Streak" value={stats.streaks.winStreak} />
                         </div>
@@ -1011,7 +1011,11 @@ const ChessAnalyzer = () => {
 
                       <StatBlock title="Openings">
                         <div className="space-y-1">
-                          <StatItem label="Most Played" value={mostPlayedOpening?.name} truncate />
+                          <StatItem
+                            label="Most Played"
+                            value={mostPlayedOpening?.name}
+                            truncate
+                          />
                           <StatItem
                             label="Best Win Rate"
                             value={[...stats.openings]
@@ -1023,7 +1027,7 @@ const ChessAnalyzer = () => {
                       </StatBlock>
 
                       <StatBlock title="Colors">
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-1.5">
                           <StatItem label="White Wins" value={stats.colorStats.White.wins} />
                           <StatItem label="Black Wins" value={stats.colorStats.Black.wins} />
                         </div>
@@ -1031,17 +1035,23 @@ const ChessAnalyzer = () => {
 
                       <StatBlock title="Opponents">
                         <div className="space-y-1">
-                          <StatItem label="Most Played" value={filteredOpponents[0]?.opponent} truncate />
+                          <StatItem
+                            label="Most Played"
+                            value={filteredOpponents[0]?.opponent}
+                            truncate
+                            className="max-w-[200px]"
+                          />
                           <StatItem
                             label="Most Wins Against"
                             value={[...filteredOpponents].sort((a, b) => b.wins - a.wins)[0]?.opponent}
                             truncate
+                            className="max-w-[200px]"
                           />
                         </div>
                       </StatBlock>
 
                       <StatBlock title="Monthly Best">
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-1.5">
                           <StatItem label="Month" value={bestWinRateMonth.month} />
                           <StatItem label="Win Rate" value={`${bestWinRateMonth.winRate.toFixed(1)}%`} />
                         </div>
@@ -1050,7 +1060,7 @@ const ChessAnalyzer = () => {
                   </div>
 
                   {/* Footer */}
-                  <div className="relative z-10 border-t pt-4 mt-4">
+                  <div className="relative z-10 border-t pt-3 mt-2">
                     <p className="text-xs text-[hsl(var(--primary))] dark:text-[hsl(var(--primary))] font-medium text-center">
                       Made with ❤️ by Opensource
                     </p>
