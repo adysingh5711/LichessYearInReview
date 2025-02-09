@@ -11,9 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { MagicCard } from "@/components/ui/magic-card";
 import { ChartMagicCard } from "@/components/ui/chart-magic-card";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 
 // Chart components
 import {
@@ -189,7 +190,7 @@ const ChessAnalyzer = () => {
 
   const StatBlock = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div className="space-y-2">
-      <h3 className="text-sm font-semibold text-primary">{title}</h3>
+      <h3 className="text-sm font-semibold text-[hsl(272.49deg_100%_42.99%)] dark:text-[hsl(272.49deg_100%_82.99%)]">{title}</h3>
       <div className="space-y-1 text-sm">{children}</div>
     </div>
   );
@@ -200,8 +201,8 @@ const ChessAnalyzer = () => {
     truncate?: boolean
   }) => (
     <div className="flex justify-between">
-      <span className="text-muted-foreground">{label}:</span>
-      <span className={`font-medium ${truncate ? 'max-w-[120px] truncate' : ''}`}>
+      <span className="text-[hsl(var(--primary))] dark:text-[hsl(var(--primary))] font-medium">{label}:</span>
+      <span className={`font-semibold text-[hsl(272.49deg_100%_42.99%)] dark:text-[hsl(272.49deg_100%_82.99%)] ${truncate ? 'max-w-[120px] truncate' : ''}`}>
         {value || '-'}
       </span>
     </div>
@@ -479,7 +480,7 @@ const ChessAnalyzer = () => {
     , [stats]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black/10 p-8 scrollbar-dark">
+    <div className="min-h-screen bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-blue-500/20 dark:from-purple-900/30 dark:via-pink-900/30 dark:to-blue-900/30">
       <div className="max-w-6xl mx-auto space-y-8">
         <Card>
           <CardHeader>
@@ -964,10 +965,13 @@ const ChessAnalyzer = () => {
         {stats && (
           <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
             <DialogContent className="max-w-md p-0 border-0 overflow-visible bg-transparent">
+              <VisuallyHidden>
+                <DialogTitle>Chess Year in Review Share Card</DialogTitle>
+              </VisuallyHidden>
               <div className="fixed inset-0 bg-black/30 backdrop-blur-lg" />
               <div className="relative flex items-center justify-center min-h-screen p-4">
                 <div
-                  className="w-full max-w-[400px] h-[90vh] bg-background rounded-xl shadow-2xl p-6 border relative flex flex-col"
+                  className="w-full max-w-[400px] h-[90vh] bg-background rounded-xl shadow-2xl p-6 border relative flex flex-col text-[hsl(272.49deg_100%_42.99%)] dark:text-[hsl(272.49deg_100%_82.99%)]"
                   id="share-card"
                   style={{
                     background: 'linear-gradient(to bottom, hsl(var(--background)), hsl(var(--secondary)/0.3))',
@@ -981,8 +985,8 @@ const ChessAnalyzer = () => {
                     <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                       CHESS YEAR IN REVIEW
                     </h1>
-                    <p className="text-xs text-muted-foreground">
-                      {username} • {new Date().getFullYear()} Summary
+                    <p className="text-xs text-[hsl(var(--primary))] dark:text-[hsl(var(--primary))] font-medium">
+                      {username} • Summary
                     </p>
                   </div>
 
@@ -1047,7 +1051,7 @@ const ChessAnalyzer = () => {
 
                   {/* Footer */}
                   <div className="relative z-10 border-t pt-4 mt-4">
-                    <p className="text-xs text-muted-foreground text-center">
+                    <p className="text-xs text-[hsl(var(--primary))] dark:text-[hsl(var(--primary))] font-medium text-center">
                       Made with ❤️ by Opensource
                     </p>
                   </div>
