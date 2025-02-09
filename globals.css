@@ -169,3 +169,32 @@ body {
   transition: none !important;
   contain: content;
 }
+
+.input-transition {
+  transition: all 0.3s ease;
+  &:hover {
+    transform: translateY(-1px);
+  }
+  &:focus-within {
+    transform: translateY(-2px);
+  }
+}
+
+.input-transition {
+  transition: all 0.3s ease;
+}
+.input-transition:hover {
+  transform: translateY(-1px);
+}
+.input-transition:focus-within {
+  transform: translateY(-2px);
+}
+
+.recharts-wrapper {
+  width: 100% !important;
+}
+
+/* .recharts-surface {
+  width: 100% !important;
+  height: 100% !important;
+} */

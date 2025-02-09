@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { MagicCard } from "@/components/ui/magic-card";
 
 // Chart components
 import {
@@ -481,78 +482,118 @@ const ChessAnalyzer = () => {
       <div className="max-w-6xl mx-auto space-y-8">
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between w-full">
-              <CardTitle className="flex items-center gap-2">
-                <Swords className="h-6 w-6" />
+            <div className="flex items-center justify-between w-full relative">
+              <div className="absolute right-0 flex items-center gap-2">
+                <a
+                  href="https://github.com/adysingh5711/LichessYearInReview"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 hover:bg-accent rounded-full transition-colors"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-5 h-5"
+                  >
+                    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.02 5.02 0 0 0 5 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+                    <path d="M9 18c-4.51 2-5-2-7-2" />
+                  </svg>
+                </a>
+                <ModeToggle />
+              </div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-500 bg-clip-text text-transparent mx-auto">
                 Chess Game Analysis
-              </CardTitle>
-              <ModeToggle />
+              </h1>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="grid gap-6">
-              <div className="flex gap-4 flex-col md:flex-row">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium mb-2">
-                    Username
-                  </label>
-                  <div className="flex gap-2">
-                    <User className="w-5 h-5 text-gray-500" />
-                    <Input
-                      placeholder="Enter your chess username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                    />
+          <MagicCard
+            className="p-6 shadow-2xl"
+            gradientColor={theme === "dark" ? "#262626" : "#f3f4f6"}
+          >
+            <CardContent>
+              <div className="grid gap-6">
+                <div className="flex gap-4 flex-col md:flex-row">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium mb-2 text-muted-foreground">
+                      Username
+                    </label>
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg transition-opacity opacity-0 group-hover:opacity-100" />
+                      <div className="relative flex gap-2 items-center bg-background/50 backdrop-blur-sm rounded-lg p-2 border">
+                        <User className="w-5 h-5 text-purple-600" />
+                        <Input
+                          placeholder="Enter your chess username"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          className="border-0 bg-transparent focus-visible:ring-0"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium mb-2 text-muted-foreground">
+                      PGN File
+                    </label>
+                    <div className="relative group">
+                      <label className="relative flex gap-2 items-center cursor-pointer bg-background/50 backdrop-blur-sm rounded-lg p-2 border hover:bg-accent transition-colors">
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg transition-opacity opacity-0 group-hover:opacity-100" />
+                        <Upload className="w-5 h-5 text-pink-600" />
+                        <span className="text-sm">
+                          {file ? file.name : "Choose PGN file"}
+                        </span>
+                        <Input
+                          type="file"
+                          accept=".pgn"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
                   </div>
                 </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium mb-2">
-                    PGN File
-                  </label>
-                  <div className="flex gap-2">
-                    <FileInput className="w-5 h-5 text-gray-500" />
-                    <Input
-                      type="file"
-                      accept=".pgn"
-                      onChange={handleFileChange}
-                    />
-                  </div>
-                </div>
-              </div>
 
-              <div className="flex justify-center gap-4">
-                <Button onClick={handleAnalyze} disabled={loading} className="w-40">
-                  {loading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white dark:border-gray-300" />
-                      Analyzing...
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Upload className="w-4 h-4" />
-                      Analyze Games
-                    </div>
-                  )}
-                </Button>
-
-                {stats && (
-                  <Button
-                    onClick={handleShare}
-                    className="w-48 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-                  >
-                    Share Your Chess Year
+                <div className="flex justify-center gap-4">
+                  <Button onClick={handleAnalyze} disabled={loading} className="w-40">
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white dark:border-gray-300" />
+                        Analyzing...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Upload className="w-4 h-4" />
+                        Analyze Games
+                      </div>
+                    )}
                   </Button>
+
+                  {stats && (
+                    <Button
+                      onClick={handleShare}
+                      className="w-48 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                    >
+                      Share Your Chess Year
+                    </Button>
+                  )}
+                </div>
+
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
                 )}
               </div>
-
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-            </div>
-          </CardContent>
+            </CardContent>
+          </MagicCard>
         </Card>
+
 
         {/* Tabs and other content remain the same */}
 
@@ -567,124 +608,94 @@ const ChessAnalyzer = () => {
             </TabsList>
             <TabsContent value="overview">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
-                <Card className="dark:bg-black/10">
-                  <CardHeader>
-                    <CardTitle className="text-lg dark:text-gray-100">Results</CardTitle>
-                  </CardHeader>
-                  <CardContent className="dark:text-gray-200">
-                    <div className="space-y-2">
-                      <p>
-                        Total Games:{" "}
-                        {Object.values(stats.results).reduce(
-                          (a, b) => a + b,
-                          0
-                        )}
-                      </p>
-                      <p>Wins: {stats.results.wins}</p>
-                      <p>Losses: {stats.results.losses}</p>
-                      <p>Draws: {stats.results.draws}</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <MagicCard
+                  className="h-full flex flex-col shadow-2xl p-6"
+                  gradientColor={theme === "dark" ? "#262626" : "#D9D9D955"}
+                >
+                  <h3 className="text-lg font-semibold dark:text-gray-100">Results</h3>
+                  <div className="space-y-2 dark:text-gray-200 mt-2">
+                    <p>Total Games: {totalGames}</p>
+                    <p>Wins: {stats.results.wins}</p>
+                    <p>Losses: {stats.results.losses}</p>
+                    <p>Draws: {stats.results.draws}</p>
+                  </div>
+                </MagicCard>
 
-                <Card className="dark:bg-black/10">
-                  <CardHeader>
-                    <CardTitle className="text-lg dark:text-gray-100">Game Types</CardTitle>
-                  </CardHeader>
-                  <CardContent className="dark:text-gray-200">
-                    <div className="space-y-2">
-                      {Object.entries(stats.gameTypes).map(([type, count]) => (
-                        <p key={type}>
-                          {type}: {count} games
-                        </p>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                <MagicCard
+                  className="h-full flex flex-col shadow-2xl p-6"
+                  gradientColor={theme === "dark" ? "#262626" : "#D9D9D955"}
+                >
+                  <h3 className="text-lg font-semibold dark:text-gray-100">Game Types</h3>
+                  <div className="space-y-2 dark:text-gray-200 mt-2">
+                    {Object.entries(stats.gameTypes).map(([type, count]) => (
+                      <p key={type}>{type}: {count} games</p>
+                    ))}
+                  </div>
+                </MagicCard>
 
-                <Card className="dark:bg-black/10">
-                  <CardHeader>
-                    <CardTitle className="text-lg dark:text-gray-100">Streaks</CardTitle>
-                  </CardHeader>
-                  <CardContent className="dark:text-gray-200">
-                    <div className="space-y-2">
-                      <p>Longest Win Streak: {stats.streaks.winStreak}</p>
-                      <p>Longest Loss Streak: {stats.streaks.lossStreak}</p>
-                      <p>Longest Draw Streak: {stats.streaks.drawStreak}</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <MagicCard
+                  className="h-full flex flex-col shadow-2xl p-6"
+                  gradientColor={theme === "dark" ? "#262626" : "#D9D9D955"}
+                >
+                  <h3 className="text-lg font-semibold dark:text-gray-100">Streaks</h3>
+                  <div className="space-y-2 dark:text-gray-200 mt-2">
+                    <p>Longest Win Streak: {stats.streaks.winStreak}</p>
+                    <p>Longest Loss Streak: {stats.streaks.lossStreak}</p>
+                    <p>Longest Draw Streak: {stats.streaks.drawStreak}</p>
+                  </div>
+                </MagicCard>
 
-                <Card className="dark:bg-black/10">
-                  <CardHeader>
-                    <CardTitle className="text-lg dark:text-gray-100">Color Statistics</CardTitle>
-                  </CardHeader>
-                  <CardContent className="dark:text-gray-200">
-                    <div className="space-y-2">
-                      <div>
-                        <p className="font-medium">White:</p>
-                        <p>Wins: {stats.colorStats.White.wins}</p>
-                        <p>Losses: {stats.colorStats.White.losses}</p>
-                        <p>Draws: {stats.colorStats.White.draws}</p>
-                      </div>
-                      <div>
-                        <p className="font-medium">Black:</p>
-                        <p>Wins: {stats.colorStats.Black.wins}</p>
-                        <p>Losses: {stats.colorStats.Black.losses}</p>
-                        <p>Draws: {stats.colorStats.Black.draws}</p>
-                      </div>
+                <MagicCard
+                  className="h-full flex flex-col shadow-2xl p-6"
+                  gradientColor={theme === "dark" ? "#262626" : "#D9D9D955"}
+                >
+                  <h3 className="text-lg font-semibold dark:text-gray-100">Color Statistics</h3>
+                  <div className="space-y-2 dark:text-gray-200 mt-2">
+                    <div>
+                      <p className="font-medium">White:</p>
+                      <p>Wins: {stats.colorStats.White.wins}</p>
+                      <p>Losses: {stats.colorStats.White.losses}</p>
+                      <p>Draws: {stats.colorStats.White.draws}</p>
                     </div>
-                  </CardContent>
-                </Card>
-                <Card className="dark:bg-black/10">
-                  <CardHeader>
-                    <CardTitle className="text-lg dark:text-gray-100">
-                      Result Distribution by Game Length
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="dark:text-gray-200">
+                    <div>
+                      <p className="font-medium">Black:</p>
+                      <p>Wins: {stats.colorStats.Black.wins}</p>
+                      <p>Losses: {stats.colorStats.Black.losses}</p>
+                      <p>Draws: {stats.colorStats.Black.draws}</p>
+                    </div>
+                  </div>
+                </MagicCard>
+
+                <MagicCard
+                  className="h-full flex flex-col shadow-2xl p-6"
+                  gradientColor={theme === "dark" ? "#262626" : "#D9D9D955"}
+                >
+                  <h3 className="text-lg font-semibold dark:text-gray-100">
+                    Result Distribution by Game Length
+                  </h3>
+                  <div className="dark:text-gray-200 mt-2">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <h3 className="font-medium">Wins</h3>
-                        <p>
-                          Average:{" "}
-                          {stats.resultDistribution.wins.average.toFixed(1)}{" "}
-                          moves
-                        </p>
-                        <p>
-                          Shortest: {stats.resultDistribution.wins.shortest}
-                        </p>
+                        <p>Average: {stats.resultDistribution.wins.average.toFixed(1)} moves</p>
+                        <p>Shortest: {stats.resultDistribution.wins.shortest}</p>
                         <p>Longest: {stats.resultDistribution.wins.longest}</p>
                       </div>
                       <div className="space-y-2">
                         <h3 className="font-medium">Losses</h3>
-                        <p>
-                          Average:{" "}
-                          {stats.resultDistribution.losses.average.toFixed(1)}{" "}
-                          moves
-                        </p>
-                        <p>
-                          Shortest: {stats.resultDistribution.losses.shortest}
-                        </p>
-                        <p>
-                          Longest: {stats.resultDistribution.losses.longest}
-                        </p>
+                        <p>Average: {stats.resultDistribution.losses.average.toFixed(1)} moves</p>
+                        <p>Shortest: {stats.resultDistribution.losses.shortest}</p>
+                        <p>Longest: {stats.resultDistribution.losses.longest}</p>
                       </div>
                       <div className="space-y-2">
                         <h3 className="font-medium">Draws</h3>
-                        <p>
-                          Average:{" "}
-                          {stats.resultDistribution.draws.average.toFixed(1)}{" "}
-                          moves
-                        </p>
-                        <p>
-                          Shortest: {stats.resultDistribution.draws.shortest}
-                        </p>
+                        <p>Average: {stats.resultDistribution.draws.average.toFixed(1)} moves</p>
+                        <p>Shortest: {stats.resultDistribution.draws.shortest}</p>
                         <p>Longest: {stats.resultDistribution.draws.longest}</p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </MagicCard>
               </div>
             </TabsContent>
             <TabsContent value="openings">
