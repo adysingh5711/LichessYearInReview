@@ -101,7 +101,7 @@ export function ShareDialog({ open, onOpenChange, stats, totalGames, peakRating,
                         </div>
 
                         {/* Overall Stats - Updated with 3 columns */}
-                        <div className="grid grid-cols-3 gap-3 mb-6">
+                        <div className="grid grid-cols-3 gap-3 mb-2.5">
                             <div className="text-center p-2 rounded-lg bg-background/50 border">
                                 <p className="text-xl font-bold text-purple-600">{totalGames}</p>
                                 <p className="text-xs">Total Games</p>
@@ -117,8 +117,8 @@ export function ShareDialog({ open, onOpenChange, stats, totalGames, peakRating,
                         </div>
 
                         {/* Results */}
-                        <div className="space-y-1.5">
-                            <h3 className="text-sm font-semibold">Results</h3>
+                        <div className="space-y-2 mb-1.5">
+                            <h3 className="text-sm font-semibold text-purple-600">Results</h3>
                             <div className="grid grid-cols-3 gap-2">
                                 <div className="text-center p-2 rounded-lg bg-green-500/10 border border-green-500/20">
                                     <p className="text-lg font-bold text-green-500">{stats.results.wins}</p>
@@ -136,8 +136,8 @@ export function ShareDialog({ open, onOpenChange, stats, totalGames, peakRating,
                         </div>
 
                         {/* Color Stats */}
-                        <div className="space-y-1.5">
-                            <h3 className="text-sm font-semibold">Color Performance</h3>
+                        <div className="space-y-1.5 mb-1.5">
+                            <h3 className="text-sm font-semibold text-purple-600">Color Performance</h3>
                             <div className="p-2 rounded-lg bg-background/50 border">
                                 <div className="flex justify-between items-center">
                                     <span className="text-xs text-white">⚪ {stats.colorStats.White.wins} wins</span>
@@ -146,37 +146,42 @@ export function ShareDialog({ open, onOpenChange, stats, totalGames, peakRating,
                             </div>
                         </div>
 
-                        {/* Openings - Updated with card look */}
-                        <div className="space-y-1">
-                            <h3 className="text-lg font-semibold text-purple-600">Openings</h3>
+                        <div className="space-y-1.5 mb-1.5">
+                            <h3 className="text-sm font-semibold text-purple-600">Openings</h3>
                             <div className="p-2 rounded-lg bg-background/50 border space-y-2">
                                 <div className="flex justify-between items-center">
                                     <span>Most Played:</span>
-                                    <span className="text-purple-600 font-medium truncate max-w-[180px]">
+                                    <span className="text-purple-600 font-small" style={{ fontSize: '1rem', textAlign: 'right' }}>
                                         {stats.openings[0]?.name || "N/A"}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span>Played {stats.openings[0]?.count || 0} times</span>
-                                    <span className="text-purple-600 font-medium">
-                                        Win Rate: {stats.openings[0]?.winRate.toFixed(1) || 0}%
+                                    <span>Played:</span>
+                                    <span className="text-purple-600 font-small">
+                                        {stats.openings[0]?.count || 0} times
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span>Win Rate:</span>
+                                    <span className="text-purple-600 font-small">
+                                        {stats.openings[0]?.winRate.toFixed(1) || 0}%
                                     </span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="space-y-1">
-                            <h3 className="text-lg font-semibold text-purple-600">Opponents</h3>
+                        <div className="space-y-1.5 mb-1.5">
+                            <h3 className="text-sm font-semibold text-purple-600">Opponents</h3>
                             <div className="p-2 rounded-lg bg-background/50 border space-y-2">
                                 <div className="flex justify-between items-center">
                                     <span>Most Played:</span>
-                                    <span className="text-purple-600 font-medium truncate max-w-[180px]">
+                                    <span className="text-purple-600 font-small truncate max-w-[180px]">
                                         {filteredOpponents[0]?.opponent || "N/A"}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span>Most Wins vs:</span>
-                                    <span className="text-purple-600 font-medium truncate max-w-[180px]">
+                                    <span className="text-purple-600 font-small truncate max-w-[180px]">
                                         {mostWinsOpponent?.opponent || "N/A"}
                                     </span>
                                 </div>

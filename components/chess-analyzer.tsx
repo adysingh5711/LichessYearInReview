@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, ChangeEvent, useMemo, useRef } from "react";
+import React, { useState, useEffect, ChangeEvent, useMemo } from "react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { toPng } from 'html-to-image';
@@ -11,10 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { MagicCard } from "@/components/ui/magic-card";
-import { ChartMagicCard } from "@/components/ui/chart-magic-card";
-import { ShareDialog } from "@/components/share-dialog";
 
 // Chart components
 import {
@@ -43,10 +41,6 @@ import {
   Swords,
   Moon,
   Sun,
-  CalendarRange,
-  Loader2,
-  HelpCircle,
-  X,
 } from "lucide-react";
 
 // Types
@@ -87,11 +81,6 @@ const ChessAnalyzer = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const { theme } = useTheme();
   const router = useRouter();
-  const [startYear, setStartYear] = useState(new Date().getFullYear().toString());
-  const [endYear, setEndYear] = useState(new Date().getFullYear().toString());
-  const [isFetching, setIsFetching] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
-  const tooltipRef = useRef<HTMLDivElement>(null);
 
   // Calculated values
   const totalGames = stats
@@ -139,57 +128,9 @@ const ChessAnalyzer = () => {
     }
   };
 
-  const handleRemoveFile = () => {
-    setFile(null);
-    // Reset the input value to allow uploading the same file again
-    const input = document.getElementById('pgn-upload') as HTMLInputElement;
-    if (input) input.value = '';
-  };
-
-  const handleFetchGames = async () => {
-    // If a file is already uploaded, analyze it directly
-    if (file) {
-      await handleAnalyze();
-      return;
-    }
-
-    if (!username) {
-      setError("Please provide a username");
-      return;
-    }
-
-    setIsFetching(true);
-    setError("");
-
-    try {
-      const response = await fetch(`/api/fetch-games?username=${username}&startYear=${startYear}&endYear=${endYear}`);
-
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-
-      const games = await response.text();
-      const newFile = new File([games], 'lichess_games.pgn', { type: 'application/x-chess-pgn' });
-      setFile(newFile);
-
-      // Proceed with analysis
-      await handleAnalyze(newFile);
-    } catch (err) {
-      setError("Failed to fetch games from Lichess. Please upload your PGN file instead.");
-    } finally {
-      setIsFetching(false);
-    }
-  };
-
-  const handleAnalyze = async (providedFile?: File) => {
-    if (!username) {
-      setError("Please provide a username");
-      return;
-    }
-
-    const fileToAnalyze = providedFile || file;
-    if (!fileToAnalyze) {
-      setError("Please either upload a PGN file or fetch games from Lichess");
+  const handleAnalyze = async () => {
+    if (!username || !file) {
+      setError("Please provide both username and PGN file");
       return;
     }
 
@@ -198,7 +139,7 @@ const ChessAnalyzer = () => {
 
     try {
       const formData = new FormData();
-      formData.append("file", fileToAnalyze);
+      formData.append("file", file);
       formData.append("username", username);
 
       const response = await fetch("/api/analyze", {
@@ -247,7 +188,7 @@ const ChessAnalyzer = () => {
 
   const StatBlock = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div className="space-y-2">
-      <h3 className="text-sm font-semibold text-[hsl(272.49deg_100%_42.99%)] dark:text-[hsl(272.49deg_100%_82.99%)]">{title}</h3>
+      <h3 className="text-sm font-semibold text-primary">{title}</h3>
       <div className="space-y-1 text-sm">{children}</div>
     </div>
   );
@@ -258,8 +199,8 @@ const ChessAnalyzer = () => {
     truncate?: boolean
   }) => (
     <div className="flex justify-between">
-      <span className="text-[hsl(var(--primary))] dark:text-[hsl(var(--primary))] font-medium">{label}:</span>
-      <span className={`font-semibold text-[hsl(272.49deg_100%_42.99%)] dark:text-[hsl(272.49deg_100%_82.99%)] ${truncate ? 'max-w-[120px] truncate' : ''}`}>
+      <span className="text-muted-foreground">{label}:</span>
+      <span className={`font-medium ${truncate ? 'max-w-[120px] truncate' : ''}`}>
         {value || '-'}
       </span>
     </div>
@@ -536,51 +477,8 @@ const ChessAnalyzer = () => {
     stats?.headToHead ? [...stats.headToHead].sort((a, b) => b.games - a.games) : []
     , [stats]);
 
-  const handleMouseEnter = () => {
-    setShowHelp(true);
-  };
-
-  const handleMouseLeave = (e: MouseEvent) => {
-    if (tooltipRef.current) {
-      const rect = tooltipRef.current.getBoundingClientRect();
-      const helpIconRect = (e.target as HTMLElement).getBoundingClientRect();
-      const buffer = 20;
-
-      // Check if mouse is outside both the tooltip and help icon areas (including buffer)
-      const outsideTooltip =
-        e.clientX < rect.left - buffer ||
-        e.clientX > rect.right + buffer ||
-        e.clientY < rect.top - buffer ||
-        e.clientY > rect.bottom + buffer;
-
-      const outsideHelpIcon =
-        e.clientX < helpIconRect.left - buffer ||
-        e.clientX > helpIconRect.right + buffer ||
-        e.clientY < helpIconRect.top - buffer ||
-        e.clientY > helpIconRect.bottom + buffer;
-
-      if (outsideTooltip && outsideHelpIcon) {
-        setShowHelp(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (showHelp) {
-      // Add a small delay before adding the mousemove listener
-      const timeoutId = setTimeout(() => {
-        document.addEventListener('mousemove', handleMouseLeave);
-      }, 100);
-
-      return () => {
-        clearTimeout(timeoutId);
-        document.removeEventListener('mousemove', handleMouseLeave);
-      };
-    }
-  }, [showHelp]);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-blue-500/20 dark:from-purple-900/30 dark:via-pink-900/30 dark:to-blue-900/30">
+    <div className="min-h-screen bg-gray-50 dark:bg-black/10 p-8 scrollbar-dark">
       <div className="max-w-6xl mx-auto space-y-8">
         <Card>
           <CardHeader>
@@ -590,7 +488,7 @@ const ChessAnalyzer = () => {
                   href="https://github.com/adysingh5711/LichessYearInReview"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-2 hover:bg-accent rounded-md transition-colors border aspect-square flex items-center justify-center"
+                  className="p-2 hover:bg-accent rounded-full transition-colors"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -615,177 +513,82 @@ const ChessAnalyzer = () => {
               </h1>
             </div>
           </CardHeader>
-          <ChartMagicCard
-            className="p-6 shadow-2xl"
-            gradientColor={theme === "dark" ? "#262626" : "#f3f4f6"}
-          >
-            <CardContent>
-              <div className="space-y-4 w-full max-w-md mx-auto">
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg transition-opacity opacity-0 group-hover:opacity-100"></div>
-                  <div className="relative flex gap-2 items-center bg-background/50 backdrop-blur-sm rounded-lg p-2 border">
-                    <User className="w-5 h-5 text-purple-600" />
+          <CardContent>
+            <div className="grid gap-6">
+              <div className="flex gap-4 flex-col md:flex-row">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-2">
+                    Username
+                  </label>
+                  <div className="flex gap-2">
+                    <User className="w-5 h-5 text-gray-500" />
                     <Input
-                      type="text"
-                      placeholder="Lichess Username"
+                      placeholder="Enter your chess username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="border-0 bg-transparent focus-visible:ring-0"
                     />
                   </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="relative group">
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg transition-opacity opacity-0 group-hover:opacity-100"></div>
-                    <div className="relative flex gap-2 items-center bg-background/50 backdrop-blur-sm rounded-lg p-2 border">
-                      <CalendarRange className="w-5 h-5 text-purple-600" />
-                      <Input
-                        type="number"
-                        placeholder="Start Year"
-                        value={startYear}
-                        onChange={(e) => setStartYear(e.target.value)}
-                        min="2010"
-                        max={new Date().getFullYear()}
-                        className="border-0 bg-transparent focus-visible:ring-0"
-                      />
-                    </div>
-                  </div>
-                  <div className="relative group">
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg transition-opacity opacity-0 group-hover:opacity-100"></div>
-                    <div className="relative flex gap-2 items-center bg-background/50 backdrop-blur-sm rounded-lg p-2 border">
-                      <CalendarRange className="w-5 h-5 text-pink-600" />
-                      <Input
-                        type="number"
-                        placeholder="End Year"
-                        value={endYear}
-                        onChange={(e) => setEndYear(e.target.value)}
-                        min="2010"
-                        max={new Date().getFullYear()}
-                        className="border-0 bg-transparent focus-visible:ring-0"
-                      />
-                    </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-2">
+                    PGN File
+                  </label>
+                  <div className="flex gap-2">
+                    <FileInput className="w-5 h-5 text-gray-500" />
+                    <Input
+                      type="file"
+                      accept=".pgn"
+                      onChange={handleFileChange}
+                    />
                   </div>
                 </div>
+              </div>
 
-                <Button
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 flex items-center justify-center gap-2"
-                  onClick={handleFetchGames}
-                  disabled={isFetching || loading}
-                >
-                  {(isFetching || loading) && (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+              <div className="flex justify-center gap-4">
+                <Button onClick={handleAnalyze} disabled={loading} className="w-40">
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white dark:border-gray-300" />
+                      Analyzing...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Upload className="w-4 h-4" />
+                      Analyze Games
+                    </div>
                   )}
-                  {isFetching ? "Fetching..." : loading ? "Analyzing..." : "Analyze Games"}
                 </Button>
 
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      Or Upload PGN
-                    </span>
-                  </div>
-                </div>
-
-                <div className="relative group flex items-center gap-2 w-full">
-                  <div className="relative group flex-1">
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg transition-opacity opacity-0 group-hover:opacity-100"></div>
-                    <label htmlFor="pgn-upload" className="relative flex gap-2 items-center cursor-pointer bg-background/50 backdrop-blur-sm rounded-lg p-2 border w-full">
-                      <Upload className="w-5 h-5 text-pink-600 shrink-0" />
-                      <span className="text-sm truncate">
-                        {file ? file.name : "Choose PGN file"}
-                      </span>
-                      {file && (
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleRemoveFile();
-                          }}
-                          className="ml-auto p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
-                          aria-label="Remove file"
-                        >
-                          <X className="w-4 h-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
-                        </button>
-                      )}
-                      <Input
-                        id="pgn-upload"
-                        type="file"
-                        accept=".pgn"
-                        onChange={handleFileChange}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-
-                  <div className="relative shrink-0">
-                    <HelpCircle
-                      className="w-5 h-5 text-muted-foreground cursor-pointer hover:text-primary transition-colors"
-                      onMouseEnter={handleMouseEnter}
-                      onMouseLeave={(e) => {
-                        // Start a timer to check if mouse moved to tooltip
-                        setTimeout(() => {
-                          if (!tooltipRef.current?.matches(':hover')) {
-                            setShowHelp(false);
-                          }
-                        }, 100);
-                      }}
-                    />
-                    {showHelp && (
-                      <div
-                        ref={tooltipRef}
-                        className="absolute left-7 top-1/2 -translate-y-1/2 w-72 p-3 bg-popover text-popover-foreground rounded-lg shadow-lg border z-50 animate-fade-in"
-                        onMouseLeave={(e) => {
-                          // Check if mouse is not over the help icon
-                          const helpIcon = e.currentTarget.previousElementSibling;
-                          if (!helpIcon?.matches(':hover')) {
-                            setShowHelp(false);
-                          }
-                        }}
-                      >
-                        <p className="text-sm">
-                          To get your PGN file:
-                          <ol className="mt-2 ml-4 list-decimal">
-                            <li>Visit <a href="https://lichess.org/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">lichess.org</a></li>
-                            <li>Go to your profile, click the three lines on the top right</li>
-                            <li>Click on &quot;Export games&quot;</li>
-                            <li>Download your games in PGN format</li>
-                          </ol>
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
+                {stats && (
+                  <Button
+                    onClick={handleShare}
+                    className="w-48 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                  >
+                    Share Your Chess Year
+                  </Button>
                 )}
               </div>
-            </CardContent>
-          </ChartMagicCard>
+
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+          </CardContent>
         </Card>
+
+        {/* Tabs and other content remain the same */}
 
         {stats && (
           <Tabs defaultValue="overview" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="openings">Openings</TabsTrigger>
-                <TabsTrigger value="progression">Rating</TabsTrigger>
-                <TabsTrigger value="performance">Performance</TabsTrigger>
-                <TabsTrigger value="headToHead">Matchups</TabsTrigger>
-              </TabsList>
-              <Button
-                onClick={handleShare}
-                className="ml-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-              >
-                Share Stats
-              </Button>
-            </div>
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="openings">Openings</TabsTrigger>
+              <TabsTrigger value="progression">Rating</TabsTrigger>
+              <TabsTrigger value="performance">Performance</TabsTrigger>
+              <TabsTrigger value="headToHead">Matchups</TabsTrigger>
+            </TabsList>
             <TabsContent value="overview">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
                 <MagicCard
@@ -879,14 +682,11 @@ const ChessAnalyzer = () => {
               </div>
             </TabsContent>
             <TabsContent value="openings">
-              <ChartMagicCard
-                className="p-6 shadow-2xl"
-                gradientColor={theme === "dark" ? "#262626" : "#f3f4f6"}
-              >
+              <Card>
                 <CardHeader>
                   <CardTitle>Opening Statistics</CardTitle>
                 </CardHeader>
-                <CardContent className="overflow-visible">
+                <CardContent>
                   <Tabs defaultValue="mostPlayed">
                     <div className="flex justify-between items-center mb-4">
                       <TabsList>
@@ -895,7 +695,9 @@ const ChessAnalyzer = () => {
                         </TabsTrigger>
                         <TabsTrigger value="mostWins">Most Wins</TabsTrigger>
                         <TabsTrigger value="bestRate">Best Rate</TabsTrigger>
-                        <TabsTrigger value="mostLosses">Most Losses</TabsTrigger>
+                        <TabsTrigger value="mostLosses">
+                          Most Losses
+                        </TabsTrigger>
                       </TabsList>
                     </div>
 
@@ -914,6 +716,7 @@ const ChessAnalyzer = () => {
                         {renderOpeningsChart(openingsByWinRate)}
                       </div>
                     </TabsContent>
+
                     <TabsContent value="mostLosses">
                       <div className="h-[300px]">
                         {renderOpeningsChart(
@@ -925,21 +728,18 @@ const ChessAnalyzer = () => {
                     </TabsContent>
                   </Tabs>
                 </CardContent>
-              </ChartMagicCard>
+              </Card>
             </TabsContent>
 
             <TabsContent value="progression">
-              <ChartMagicCard
-                className="p-6 shadow-2xl"
-                gradientColor={theme === "dark" ? "#262626" : "#f3f4f6"}
-              >
+              <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Rating Progression</CardTitle>
                     <select
                       value={selectedGameType}
                       onChange={(e) => setSelectedGameType(e.target.value)}
-                      className="bg-background border rounded-md px-3 py-1 text-sm z-20"  // Added z-20
+                      className="bg-background border rounded-md px-3 py-1 text-sm"
                     >
                       <option value="All">All Game Types</option>
                       {stats && Object.keys(stats.gameTypes).map((type) => (
@@ -950,7 +750,7 @@ const ChessAnalyzer = () => {
                     </select>
                   </div>
                 </CardHeader>
-                <CardContent className="overflow-visible">
+                <CardContent>
                   <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart
@@ -1049,34 +849,28 @@ const ChessAnalyzer = () => {
                     </ResponsiveContainer>
                   </div>
                 </CardContent>
-              </ChartMagicCard>
+              </Card>
             </TabsContent>
 
             <TabsContent value="performance">
-              <ChartMagicCard
-                className="p-6 shadow-2xl"
-                gradientColor={theme === "dark" ? "#262626" : "#f3f4f6"}
-              >
+              <Card>
                 <CardHeader>
                   <CardTitle>Monthly Performance</CardTitle>
                 </CardHeader>
-                <CardContent className="overflow-visible">
+                <CardContent>
                   <div className="h-[300px]">
                     {renderWinRateChart(stats.monthlyPerformance)}
                   </div>
                 </CardContent>
-              </ChartMagicCard>
+              </Card>
             </TabsContent>
 
             <TabsContent value="headToHead">
-              <ChartMagicCard
-                className="p-6 shadow-2xl"
-                gradientColor={theme === "dark" ? "#262626" : "#f3f4f6"}
-              >
+              <Card>
                 <CardHeader>
                   <CardTitle>Top Opponent Matchups</CardTitle>
                 </CardHeader>
-                <CardContent className="overflow-visible">
+                <CardContent>
                   <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={stats.headToHead} style={{
@@ -1136,22 +930,116 @@ const ChessAnalyzer = () => {
                     </ResponsiveContainer>
                   </div>
                 </CardContent>
-              </ChartMagicCard>
+              </Card>
             </TabsContent>
           </Tabs>
         )}
         {stats && (
-          <ShareDialog
-            open={showShareModal}
-            onOpenChange={setShowShareModal}
-            stats={stats}
-            totalGames={totalGames}
-            username={username}
-            peakRating={peakRating}
-          />
+          <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+            <DialogContent className="max-w-md p-0 border-0 overflow-visible bg-transparent">
+              <div className="fixed inset-0 bg-black/30 backdrop-blur-lg" />
+              <div className="relative flex items-center justify-center min-h-screen p-4">
+                <div
+                  className="w-full max-w-[400px] h-[90vh] bg-background rounded-xl shadow-2xl p-6 border relative flex flex-col"
+                  id="share-card"
+                  style={{
+                    background: 'linear-gradient(to bottom, hsl(var(--background)), hsl(var(--secondary)/0.3))',
+                  }}
+                >
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-purple-500/20 to-pink-500/20 z-0" />
+
+                  {/* Card Header */}
+                  <div className="relative z-10 flex flex-col gap-2 mb-4">
+                    <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                      CHESS YEAR IN REVIEW
+                    </h1>
+                    <p className="text-xs text-muted-foreground">
+                      {username} • {new Date().getFullYear()} Summary
+                    </p>
+                  </div>
+
+                  {/* Card Content - Vertical Layout */}
+                  <div className="relative z-10 flex-1 grid grid-cols-1 gap-4 overflow-y-auto">
+                    <div className="space-y-4">
+                      <StatBlock title="Results">
+                        <div className="grid grid-cols-2 gap-2">
+                          <StatItem label="Total" value={totalGames} />
+                          <StatItem label="Wins" value={stats.results.wins} />
+                          <StatItem label="Losses" value={stats.results.losses} />
+                          <StatItem label="Draws" value={stats.results.draws} />
+                        </div>
+                      </StatBlock>
+
+                      <StatBlock title="Performance">
+                        <div className="grid grid-cols-2 gap-2">
+                          <StatItem label="Peak Rating" value={peakRating} />
+                          <StatItem label="Best Streak" value={stats.streaks.winStreak} />
+                        </div>
+                      </StatBlock>
+
+                      <StatBlock title="Openings">
+                        <div className="space-y-1">
+                          <StatItem label="Most Played" value={mostPlayedOpening?.name} truncate />
+                          <StatItem
+                            label="Best Win Rate"
+                            value={[...stats.openings]
+                              .filter(o => o.count > 10)
+                              .sort((a, b) => b.winRate - a.winRate)[0]?.name}
+                            truncate
+                          />
+                        </div>
+                      </StatBlock>
+
+                      <StatBlock title="Colors">
+                        <div className="grid grid-cols-2 gap-2">
+                          <StatItem label="White Wins" value={stats.colorStats.White.wins} />
+                          <StatItem label="Black Wins" value={stats.colorStats.Black.wins} />
+                        </div>
+                      </StatBlock>
+
+                      <StatBlock title="Opponents">
+                        <div className="space-y-1">
+                          <StatItem label="Most Played" value={filteredOpponents[0]?.opponent} truncate />
+                          <StatItem
+                            label="Most Wins Against"
+                            value={[...filteredOpponents].sort((a, b) => b.wins - a.wins)[0]?.opponent}
+                            truncate
+                          />
+                        </div>
+                      </StatBlock>
+
+                      <StatBlock title="Monthly Best">
+                        <div className="grid grid-cols-2 gap-2">
+                          <StatItem label="Month" value={bestWinRateMonth.month} />
+                          <StatItem label="Win Rate" value={`${bestWinRateMonth.winRate.toFixed(1)}%`} />
+                        </div>
+                      </StatBlock>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="relative z-10 border-t pt-4 mt-4">
+                    <p className="text-xs text-muted-foreground text-center">
+                      Made with ❤️ by Opensource
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  id="download-button"
+                  onClick={handleDownload}
+                  size="sm"
+                  className="absolute bottom-4 right-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-xs shadow-lg"
+                >
+                  Download
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         )}
       </div>
-    </div >
+    </div>
   );
 };
 
