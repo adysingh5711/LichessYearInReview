@@ -42,6 +42,7 @@ import {
   Swords,
   Moon,
   Sun,
+  CalendarRange,
 } from "lucide-react";
 
 // Types
@@ -83,6 +84,9 @@ const ChessAnalyzer = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const { theme } = useTheme();
   const router = useRouter();
+  const [startYear, setStartYear] = useState(new Date().getFullYear().toString());
+  const [endYear, setEndYear] = useState(new Date().getFullYear().toString());
+  const [isFetching, setIsFetching] = useState(false);
 
   // Calculated values
   const totalGames = stats
@@ -130,9 +134,50 @@ const ChessAnalyzer = () => {
     }
   };
 
-  const handleAnalyze = async () => {
-    if (!username || !file) {
-      setError("Please provide both username and PGN file");
+  const handleFetchGames = async () => {
+    // If a file is already uploaded, analyze it directly
+    if (file) {
+      await handleAnalyze();
+      return;
+    }
+
+    if (!username) {
+      setError("Please provide a username");
+      return;
+    }
+
+    setIsFetching(true);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/fetch-games?username=${username}&startYear=${startYear}&endYear=${endYear}`);
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      const games = await response.text();
+      const newFile = new File([games], 'lichess_games.pgn', { type: 'application/x-chess-pgn' });
+      setFile(newFile);
+
+      // Proceed with analysis
+      await handleAnalyze(newFile);
+    } catch (err) {
+      setError("Failed to fetch games from Lichess. Please upload your PGN file instead.");
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+  const handleAnalyze = async (providedFile?: File) => {
+    if (!username) {
+      setError("Please provide a username");
+      return;
+    }
+
+    const fileToAnalyze = providedFile || file;
+    if (!fileToAnalyze) {
+      setError("Please either upload a PGN file or fetch games from Lichess");
       return;
     }
 
@@ -141,7 +186,7 @@ const ChessAnalyzer = () => {
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", fileToAnalyze);
       formData.append("username", username);
 
       const response = await fetch("/api/analyze", {
@@ -520,70 +565,86 @@ const ChessAnalyzer = () => {
             gradientColor={theme === "dark" ? "#262626" : "#f3f4f6"}
           >
             <CardContent>
-              <div className="grid gap-6">
-                <div className="flex gap-4 flex-col md:flex-row">
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium mb-2 text-muted-foreground">
-                      Username
-                    </label>
-                    <div className="relative group z-20">
-                      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg transition-opacity opacity-0 group-hover:opacity-100" />
-                      <div className="relative flex gap-2 items-center bg-background/50 backdrop-blur-sm rounded-lg p-2 border">
-                        <User className="w-5 h-5 text-purple-600" />
-                        <Input
-                          placeholder="Enter your chess username"
-                          value={username}
-                          onChange={(e) => setUsername(e.target.value)}
-                          className="border-0 bg-transparent focus-visible:ring-0"
-                        />
-                      </div>
+              <div className="space-y-4 w-full max-w-md mx-auto">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg transition-opacity opacity-0 group-hover:opacity-100"></div>
+                  <div className="relative flex gap-2 items-center bg-background/50 backdrop-blur-sm rounded-lg p-2 border">
+                    <User className="w-5 h-5 text-purple-600" />
+                    <Input
+                      type="text"
+                      placeholder="Lichess Username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="border-0 bg-transparent focus-visible:ring-0"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg transition-opacity opacity-0 group-hover:opacity-100"></div>
+                    <div className="relative flex gap-2 items-center bg-background/50 backdrop-blur-sm rounded-lg p-2 border">
+                      <CalendarRange className="w-5 h-5 text-purple-600" />
+                      <Input
+                        type="number"
+                        placeholder="Start Year"
+                        value={startYear}
+                        onChange={(e) => setStartYear(e.target.value)}
+                        min="2010"
+                        max={new Date().getFullYear()}
+                        className="border-0 bg-transparent focus-visible:ring-0"
+                      />
                     </div>
                   </div>
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium mb-2 text-muted-foreground">
-                      PGN File
-                    </label>
-                    <div className="relative group z-20">
-                      <label className="relative flex gap-2 items-center cursor-pointer bg-background/50 backdrop-blur-sm rounded-lg p-2 border hover:bg-accent transition-colors">
-                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg transition-opacity opacity-0 group-hover:opacity-100" />
-                        <Upload className="w-5 h-5 text-pink-600" />
-                        <span className="text-sm">
-                          {file ? file.name : "Choose PGN file"}
-                        </span>
-                        <Input
-                          type="file"
-                          accept=".pgn"
-                          onChange={handleFileChange}
-                          className="hidden"
-                        />
-                      </label>
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg transition-opacity opacity-0 group-hover:opacity-100"></div>
+                    <div className="relative flex gap-2 items-center bg-background/50 backdrop-blur-sm rounded-lg p-2 border">
+                      <CalendarRange className="w-5 h-5 text-pink-600" />
+                      <Input
+                        type="number"
+                        placeholder="End Year"
+                        value={endYear}
+                        onChange={(e) => setEndYear(e.target.value)}
+                        min="2010"
+                        max={new Date().getFullYear()}
+                        className="border-0 bg-transparent focus-visible:ring-0"
+                      />
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-center gap-4">
-                  <Button onClick={handleAnalyze} disabled={loading} className="w-40">
-                    {loading ? (
-                      <div className="flex items-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white dark:border-gray-300" />
-                        Analyzing...
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <Upload className="w-4 h-4" />
-                        Analyze Games
-                      </div>
-                    )}
-                  </Button>
+                <Button
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                  onClick={handleFetchGames}
+                  disabled={isFetching || loading}
+                >
+                  {isFetching ? "Fetching..." : loading ? "Analyzing..." : "Analyze Games"}
+                </Button>
 
-                  {stats && (
-                    <Button
-                      onClick={handleShare}
-                      className="w-48 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-                    >
-                      Share Your Chess Year
-                    </Button>
-                  )}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Or Upload PGN
+                    </span>
+                  </div>
+                </div>
+
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg transition-opacity opacity-0 group-hover:opacity-100"></div>
+                  <label htmlFor="pgn-upload" className="relative flex gap-2 items-center cursor-pointer bg-background/50 backdrop-blur-sm rounded-lg p-2 border">
+                    <Upload className="w-5 h-5 text-pink-600" />
+                    <span className="text-sm">Choose PGN file</span>
+                    <Input
+                      id="pgn-upload"
+                      type="file"
+                      accept=".pgn"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
 
                 {error && (
@@ -596,18 +657,23 @@ const ChessAnalyzer = () => {
           </ChartMagicCard>
         </Card>
 
-
-        {/* Tabs and other content remain the same */}
-
         {stats && (
           <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="openings">Openings</TabsTrigger>
-              <TabsTrigger value="progression">Rating</TabsTrigger>
-              <TabsTrigger value="performance">Performance</TabsTrigger>
-              <TabsTrigger value="headToHead">Matchups</TabsTrigger>
-            </TabsList>
+            <div className="flex justify-between items-center">
+              <TabsList className="grid w-full grid-cols-5">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="openings">Openings</TabsTrigger>
+                <TabsTrigger value="progression">Rating</TabsTrigger>
+                <TabsTrigger value="performance">Performance</TabsTrigger>
+                <TabsTrigger value="headToHead">Matchups</TabsTrigger>
+              </TabsList>
+              <Button
+                onClick={handleShare}
+                className="ml-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              >
+                Share Stats
+              </Button>
+            </div>
             <TabsContent value="overview">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
                 <MagicCard
@@ -1039,13 +1105,11 @@ const ChessAnalyzer = () => {
                             label="Most Played"
                             value={filteredOpponents[0]?.opponent}
                             truncate
-                            className="max-w-[200px]"
                           />
                           <StatItem
                             label="Most Wins Against"
                             value={[...filteredOpponents].sort((a, b) => b.wins - a.wins)[0]?.opponent}
                             truncate
-                            className="max-w-[200px]"
                           />
                         </div>
                       </StatBlock>

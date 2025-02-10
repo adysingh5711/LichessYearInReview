@@ -39,7 +39,8 @@ export const parseGame = (pgnText: string): GameStats[] => {
 
   for (let gameText of gameTexts) {
     try {
-      chess.loadPgn(gameText);
+      // Enable sloppy mode to handle check symbols and non-strict SAN
+      chess.loadPgn(gameText, { strict: false });
       const headers = chess.header();
 
       // Validate required fields
@@ -66,6 +67,7 @@ export const parseGame = (pgnText: string): GameStats[] => {
       continue;
     }
   }
+
   games.sort((a, b) => a.date!.getTime() - b.date!.getTime());
   return games;
 };
