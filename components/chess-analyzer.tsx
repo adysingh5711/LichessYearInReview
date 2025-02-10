@@ -408,7 +408,7 @@ const ChessAnalyzer = () => {
             tick={renderCustomizedTick}
             interval={0}
             label={{
-              value: "Openings",
+              // value: "Openings",
               position: "bottom",
               dy: -25
             }}

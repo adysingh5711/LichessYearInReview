@@ -148,7 +148,7 @@ export function ShareDialog({ open, onOpenChange, stats, totalGames, peakRating,
                             <h3 className="text-sm font-semibold text-purple-600">Color Performance</h3>
                             <div className="p-2 rounded-lg bg-background/50 border">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-xs text-zinc-500 dark:text-white">⚪ {stats.colorStats.White.wins} wins</span>
+                                    <span className="text-xs" style={{ color: 'rgb(107 107 107) / var(--tw-text-opacity, 1))' }}>⚪ {stats.colorStats.White.wins} wins</span>
                                     <span className="text-xs text-zinc-900 dark:text-zinc-200">⚫ {stats.colorStats.Black.wins} wins</span>
                                 </div>
                             </div>
