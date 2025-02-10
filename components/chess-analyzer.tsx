@@ -730,7 +730,7 @@ const ChessAnalyzer = () => {
                           <ol className="mt-2 ml-4 list-decimal">
                             <li>Visit <a href="https://lichess.org/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">lichess.org</a></li>
                             <li>Go to your profile, click the three lines on the top right</li>
-                            <li>Click on "Export games"</li>
+                            <li>Click on &quot;Export games&quot;</li>
                             <li>Download your games in PGN format</li>
                           </ol>
                         </p>
@@ -1171,14 +1171,14 @@ const ChessAnalyzer = () => {
                         <div className="space-y-1">
                           <StatItem
                             label="Most Played"
-                            value={mostPlayedOpening?.name}
+                            value={mostPlayedOpening?.name || 'N/A'}
                             truncate
                           />
                           <StatItem
                             label="Best Win Rate"
                             value={[...stats.openings]
                               .filter(o => o.count > 10)
-                              .sort((a, b) => b.winRate - a.winRate)[0]?.name}
+                              .sort((a, b) => b.winRate - a.winRate)[0]?.name || 'N/A'}
                             truncate
                           />
                         </div>
