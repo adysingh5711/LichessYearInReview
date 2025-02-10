@@ -144,11 +144,13 @@ export const analyzeGames = (
     }
 
     // Process openings.
-    const opening = game.opening || "Unknown";
+    const opening = game.opening?.trim() || "Unknown Opening";
     if (!openingStats[opening]) {
       openingStats[opening] = { count: 0, wins: 0, losses: 0, draws: 0 };
     }
     openingStats[opening].count++;
+
+    // Update opening results based on game outcome
     if (isWin) {
       openingStats[opening].wins++;
     } else if (isDraw) {
