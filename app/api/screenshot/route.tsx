@@ -16,7 +16,8 @@ export async function GET(request: Request) {
 
     // Navigate to your landing page
     await page.goto('https://lichess-review.vercel.app/', {
-        waitUntil: 'networkidle2', // Wait for the page to fully load
+        waitUntil: 'networkidle2',
+        timeout: 60000,
     });
 
     // Take a screenshot
