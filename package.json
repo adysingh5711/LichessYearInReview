@@ -60,11 +60,12 @@
     "whatwg-fetch": "^3.6.20"
   },
   "pnpm": {
-    "ignoredBuiltDependencies": [
-      "@vercel/speed-insights",
-      "sharp",
-      "sharp"
-    ],
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "@vercel/speed-insights",
+        "sharp"
+      ]
+    },
     "onlyBuiltDependencies": [
       "@vercel/speed-insights"
     ]
