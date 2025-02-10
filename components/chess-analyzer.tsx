@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { MagicCard } from "@/components/ui/magic-card";
 import { ChartMagicCard } from "@/components/ui/chart-magic-card";
-import { VisuallyHidden } from "@/components/ui/visually-hidden";
+import { ShareDialog } from "@/components/share-dialog";
 
 // Chart components
 import {
@@ -1141,122 +1141,17 @@ const ChessAnalyzer = () => {
           </Tabs>
         )}
         {stats && (
-          <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
-            <DialogContent className="max-w-md p-0 border-0 overflow-visible bg-transparent">
-              <VisuallyHidden>
-                <DialogTitle>Chess Year in Review Share Card</DialogTitle>
-              </VisuallyHidden>
-              <div className="fixed inset-0 bg-black/30 backdrop-blur-lg" />
-              <div className="relative flex items-center justify-center min-h-screen p-4">
-                <div
-                  className="w-[360px] h-[640px] bg-background rounded-xl shadow-2xl p-6 border relative flex flex-col text-[hsl(272.49deg_100%_42.99%)] dark:text-[hsl(272.49deg_100%_82.99%)]"
-                  id="share-card"
-                  style={{
-                    background: 'linear-gradient(to bottom, hsl(var(--background)), hsl(var(--secondary)/0.3))',
-                  }}
-                >
-                  {/* Gradient overlay */}
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-purple-500/20 to-pink-500/20 z-0" />
-
-                  {/* Card Header */}
-                  <div className="relative z-10 flex flex-col gap-1 mb-3">
-                    <h1 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                      CHESS YEAR IN REVIEW
-                    </h1>
-                    <p className="text-xs text-[hsl(var(--primary))] dark:text-[hsl(var(--primary))] font-medium">
-                      {username} • Summary
-                    </p>
-                  </div>
-
-                  {/* Card Content - Vertical Layout */}
-                  <div className="relative z-10 flex-1 grid grid-cols-1 gap-3 overflow-hidden">
-                    <div className="space-y-3">
-                      <StatBlock title="Results">
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <StatItem label="Total" value={totalGames} />
-                          <StatItem label="Wins" value={stats.results.wins} />
-                          <StatItem label="Losses" value={stats.results.losses} />
-                          <StatItem label="Draws" value={stats.results.draws} />
-                        </div>
-                      </StatBlock>
-
-                      <StatBlock title="Performance">
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <StatItem label="Peak Rating" value={peakRating} />
-                          <StatItem label="Best Streak" value={stats.streaks.winStreak} />
-                        </div>
-                      </StatBlock>
-
-                      <StatBlock title="Openings">
-                        <div className="space-y-1">
-                          <StatItem
-                            label="Most Played"
-                            value={mostPlayedOpening?.name || 'N/A'}
-                            truncate
-                          />
-                          <StatItem
-                            label="Best Win Rate"
-                            value={[...stats.openings]
-                              .filter(o => o.count > 10)
-                              .sort((a, b) => b.winRate - a.winRate)[0]?.name || 'N/A'}
-                            truncate
-                          />
-                        </div>
-                      </StatBlock>
-
-                      <StatBlock title="Colors">
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <StatItem label="White Wins" value={stats.colorStats.White.wins} />
-                          <StatItem label="Black Wins" value={stats.colorStats.Black.wins} />
-                        </div>
-                      </StatBlock>
-
-                      <StatBlock title="Opponents">
-                        <div className="space-y-1">
-                          <StatItem
-                            label="Most Played"
-                            value={filteredOpponents[0]?.opponent}
-                            truncate
-                          />
-                          <StatItem
-                            label="Most Wins Against"
-                            value={[...filteredOpponents].sort((a, b) => b.wins - a.wins)[0]?.opponent}
-                            truncate
-                          />
-                        </div>
-                      </StatBlock>
-
-                      <StatBlock title="Monthly Best">
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <StatItem label="Month" value={bestWinRateMonth.month} />
-                          <StatItem label="Win Rate" value={`${bestWinRateMonth.winRate.toFixed(1)}%`} />
-                        </div>
-                      </StatBlock>
-                    </div>
-                  </div>
-
-                  {/* Footer */}
-                  <div className="relative z-10 border-t pt-3 mt-2">
-                    <p className="text-xs text-[hsl(var(--primary))] dark:text-[hsl(var(--primary))] font-medium text-center">
-                      Made with ❤️ by Opensource
-                    </p>
-                  </div>
-                </div>
-
-                <Button
-                  id="download-button"
-                  onClick={handleDownload}
-                  size="sm"
-                  className="absolute bottom-4 right-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-xs shadow-lg"
-                >
-                  Download
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <ShareDialog
+            open={showShareModal}
+            onOpenChange={setShowShareModal}
+            stats={stats}
+            totalGames={totalGames}
+            username={username}
+            peakRating={peakRating}
+          />
         )}
       </div>
-    </div>
+    </div >
   );
 };
 

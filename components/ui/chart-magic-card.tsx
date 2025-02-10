@@ -1,10 +1,12 @@
 "use client";
 
-import { motion, useMotionTemplate, useMotionValue } from "motion/react";
+import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
 import React, { useCallback, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface ChartMagicCardProps extends React.HTMLAttributes<HTMLDivElement> {
+    children: React.ReactNode;
+    className?: string;
     gradientSize?: number;
     gradientColor?: string;
     gradientOpacity?: number;
@@ -21,83 +23,73 @@ export function ChartMagicCard({
     gradientFrom = "#9E7AFF",
     gradientTo = "#FE8BBB",
 }: ChartMagicCardProps) {
-    const cardRef = useRef<HTMLDivElement>(null);
     const mouseX = useMotionValue(-gradientSize);
     const mouseY = useMotionValue(-gradientSize);
+    const cardRef = useRef<HTMLDivElement>(null);
 
-    const handleMouseMove = useCallback(
-        (e: MouseEvent) => {
-            if (cardRef.current) {
-                const { left, top } = cardRef.current.getBoundingClientRect();
-                const clientX = e.clientX;
-                const clientY = e.clientY;
-                mouseX.set(clientX - left);
-                mouseY.set(clientY - top);
-            }
-        },
-        [mouseX, mouseY],
-    );
+    const handleMouseMove = (e: MouseEvent) => {
+        if (!cardRef.current) return;
+        const rect = cardRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        mouseX.set(x);
+        mouseY.set(y);
+    };
 
-    const handleMouseOut = useCallback(
-        (e: MouseEvent) => {
-            if (!e.relatedTarget) {
-                document.removeEventListener("mousemove", handleMouseMove);
-                mouseX.set(-gradientSize);
-                mouseY.set(-gradientSize);
-            }
-        },
-        [handleMouseMove, mouseX, gradientSize, mouseY],
-    );
-
-    const handleMouseEnter = useCallback(() => {
-        document.addEventListener("mousemove", handleMouseMove);
+    const handleMouseOut = () => {
         mouseX.set(-gradientSize);
         mouseY.set(-gradientSize);
-    }, [handleMouseMove, mouseX, gradientSize, mouseY]);
+    };
+
+    const handleMouseEnter = () => {
+        if (!cardRef.current) return;
+        const rect = cardRef.current.getBoundingClientRect();
+        mouseX.set(rect.width / 2);
+        mouseY.set(rect.height / 2);
+    };
 
     useEffect(() => {
-        document.addEventListener("mousemove", handleMouseMove);
-        document.addEventListener("mouseout", handleMouseOut);
-        document.addEventListener("mouseenter", handleMouseEnter);
+        const card = cardRef.current;
+        if (!card) return;
+
+        card.addEventListener("mousemove", handleMouseMove);
+        card.addEventListener("mouseout", handleMouseOut);
+        card.addEventListener("mouseenter", handleMouseEnter);
 
         return () => {
-            document.removeEventListener("mousemove", handleMouseMove);
-            document.removeEventListener("mouseout", handleMouseOut);
-            document.removeEventListener("mouseenter", handleMouseEnter);
+            card.removeEventListener("mousemove", handleMouseMove);
+            card.removeEventListener("mouseout", handleMouseOut);
+            card.removeEventListener("mouseenter", handleMouseEnter);
         };
-    }, [handleMouseEnter, handleMouseMove, handleMouseOut]);
+    }, []);
 
+    // Initialize position off-screen
     useEffect(() => {
         mouseX.set(-gradientSize);
         mouseY.set(-gradientSize);
     }, [gradientSize, mouseX, mouseY]);
 
+    const background = useMotionTemplate`radial-gradient(${gradientSize}px circle at ${mouseX}px ${mouseY}px, ${gradientColor}, transparent 100%)`;
+    const gradientBackground = useMotionTemplate`radial-gradient(${gradientSize}px circle at ${mouseX}px ${mouseY}px, ${gradientFrom}, ${gradientTo}, hsl(var(--border)) 100%)`;
+
     return (
         <div
             ref={cardRef}
-            className={cn("group relative flex w-full rounded-xl", className)} // Changed size-full to w-full
+            className={cn("group relative flex w-full rounded-xl", className)}
         >
             <div className="absolute inset-px z-10 rounded-xl bg-background" />
             <div className="relative z-30 w-full">{children}</div>
             <motion.div
                 className="pointer-events-none absolute inset-px z-10 rounded-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                 style={{
-                    background: useMotionTemplate`
-            radial-gradient(${gradientSize}px circle at ${mouseX}px ${mouseY}px, ${gradientColor}, transparent 100%)
-          `,
-                    opacity: gradientOpacity,
+                    background,
+                    opacity: gradientOpacity
                 }}
             />
             <motion.div
                 className="pointer-events-none absolute inset-0 rounded-xl bg-border duration-300 group-hover:opacity-100"
                 style={{
-                    background: useMotionTemplate`
-            radial-gradient(${gradientSize}px circle at ${mouseX}px ${mouseY}px,
-              ${gradientFrom}, 
-              ${gradientTo}, 
-              hsl(var(--border)) 100%
-            )
-          `,
+                    background: gradientBackground
                 }}
             />
         </div>
