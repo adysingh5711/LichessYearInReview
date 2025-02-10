@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, ChangeEvent, useMemo } from "react";
+import React, { useState, useEffect, ChangeEvent, useMemo, useRef } from "react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { toPng } from 'html-to-image';
@@ -43,6 +43,8 @@ import {
   Moon,
   Sun,
   CalendarRange,
+  Loader2,
+  HelpCircle,
 } from "lucide-react";
 
 // Types
@@ -87,6 +89,8 @@ const ChessAnalyzer = () => {
   const [startYear, setStartYear] = useState(new Date().getFullYear().toString());
   const [endYear, setEndYear] = useState(new Date().getFullYear().toString());
   const [isFetching, setIsFetching] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   // Calculated values
   const totalGames = stats
@@ -524,6 +528,49 @@ const ChessAnalyzer = () => {
     stats?.headToHead ? [...stats.headToHead].sort((a, b) => b.games - a.games) : []
     , [stats]);
 
+  const handleMouseEnter = () => {
+    setShowHelp(true);
+  };
+
+  const handleMouseLeave = (e: any) => {
+    if (tooltipRef.current) {
+      const rect = tooltipRef.current.getBoundingClientRect();
+      const helpIconRect = e.target.getBoundingClientRect();
+      const buffer = 20;
+
+      // Check if mouse is outside both the tooltip and help icon areas (including buffer)
+      const outsideTooltip =
+        e.clientX < rect.left - buffer ||
+        e.clientX > rect.right + buffer ||
+        e.clientY < rect.top - buffer ||
+        e.clientY > rect.bottom + buffer;
+
+      const outsideHelpIcon =
+        e.clientX < helpIconRect.left - buffer ||
+        e.clientX > helpIconRect.right + buffer ||
+        e.clientY < helpIconRect.top - buffer ||
+        e.clientY > helpIconRect.bottom + buffer;
+
+      if (outsideTooltip && outsideHelpIcon) {
+        setShowHelp(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (showHelp) {
+      // Add a small delay before adding the mousemove listener
+      const timeoutId = setTimeout(() => {
+        document.addEventListener('mousemove', handleMouseLeave);
+      }, 100);
+
+      return () => {
+        clearTimeout(timeoutId);
+        document.removeEventListener('mousemove', handleMouseLeave);
+      };
+    }
+  }, [showHelp]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-blue-500/20 dark:from-purple-900/30 dark:via-pink-900/30 dark:to-blue-900/30">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -614,10 +661,13 @@ const ChessAnalyzer = () => {
                 </div>
 
                 <Button
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 flex items-center justify-center gap-2"
                   onClick={handleFetchGames}
                   disabled={isFetching || loading}
                 >
+                  {(isFetching || loading) && (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  )}
                   {isFetching ? "Fetching..." : loading ? "Analyzing..." : "Analyze Games"}
                 </Button>
 
@@ -632,19 +682,61 @@ const ChessAnalyzer = () => {
                   </div>
                 </div>
 
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg transition-opacity opacity-0 group-hover:opacity-100"></div>
-                  <label htmlFor="pgn-upload" className="relative flex gap-2 items-center cursor-pointer bg-background/50 backdrop-blur-sm rounded-lg p-2 border">
-                    <Upload className="w-5 h-5 text-pink-600" />
-                    <span className="text-sm">Choose PGN file</span>
-                    <Input
-                      id="pgn-upload"
-                      type="file"
-                      accept=".pgn"
-                      onChange={handleFileChange}
-                      className="hidden"
+                <div className="relative group flex items-center gap-2 w-full">
+                  <div className="relative group flex-1">
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg transition-opacity opacity-0 group-hover:opacity-100"></div>
+                    <label htmlFor="pgn-upload" className="relative flex gap-2 items-center cursor-pointer bg-background/50 backdrop-blur-sm rounded-lg p-2 border w-full">
+                      <Upload className="w-5 h-5 text-pink-600 shrink-0" />
+                      <span className="text-sm truncate">
+                        {file ? file.name : "Choose PGN file"}
+                      </span>
+                      <Input
+                        id="pgn-upload"
+                        type="file"
+                        accept=".pgn"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="relative shrink-0">
+                    <HelpCircle
+                      className="w-5 h-5 text-muted-foreground cursor-pointer hover:text-primary transition-colors"
+                      onMouseEnter={handleMouseEnter}
+                      onMouseLeave={(e) => {
+                        // Start a timer to check if mouse moved to tooltip
+                        setTimeout(() => {
+                          if (!tooltipRef.current?.matches(':hover')) {
+                            setShowHelp(false);
+                          }
+                        }, 100);
+                      }}
                     />
-                  </label>
+                    {showHelp && (
+                      <div
+                        ref={tooltipRef}
+                        className="absolute left-7 top-1/2 -translate-y-1/2 w-72 p-3 bg-popover text-popover-foreground rounded-lg shadow-lg border z-50 animate-fade-in"
+                        onMouseLeave={(e) => {
+                          // Check if mouse is not over the help icon
+                          const helpIcon = e.currentTarget.previousElementSibling;
+                          if (!helpIcon?.matches(':hover')) {
+                            setShowHelp(false);
+                          }
+                        }}
+                      >
+                        <p className="text-sm">
+                          To get your PGN file:
+                          <ol className="mt-2 ml-4 list-decimal">
+                            <li>Visit <a href="https://lichess.org/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">lichess.org</a></li>
+                            <li>Go to your profile, click the three lines on the top right</li>
+                            <li>Click on "Export games"</li>
+                            <li>Download your games in PGN format</li>
+                          </ol>
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {error && (
