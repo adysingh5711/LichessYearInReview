@@ -35,6 +35,7 @@
     "next": "^15.1.6",
     "next-themes": "^0.4.4",
     "postcss": "^8.5.1",
+    "puppeteer": "^24.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.0",
@@ -69,7 +70,8 @@
       ]
     },
     "onlyBuiltDependencies": [
-      "@vercel/speed-insights"
+      "@vercel/speed-insights",
+      "puppeteer"
     ]
   }
 }

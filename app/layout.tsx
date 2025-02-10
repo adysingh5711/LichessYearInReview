@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     description: 'Analyze your chess games and track your progress with the Lichess Review. Created with ❤️ by Aditya and the Open Source Community.',
     images: [
       {
-        url: `${baseUrl}/api/og?title=${encodeURIComponent('Lichess Review')}&description=${encodeURIComponent('Analyze your chess games and track your progress!')}`,
+        url: `${baseUrl}/api/screenshot?title=${encodeURIComponent('Lichess Review')}&description=${encodeURIComponent('Analyze your chess games and track your progress!')}`,
         width: 1200,
         height: 630,
         alt: 'Lichess Review Image',
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     site: '@yourtwitterhandle',
     title: 'Lichess Review',
     description: 'Analyze your chess games and track your progress with the Lichess Review. Created with ❤️ by Aditya and the Open Source Community.',
-    images: `${baseUrl}/api/og?title=${encodeURIComponent('Lichess Review')}&description=${encodeURIComponent('Analyze your chess games and track your progress!')}`,
+    images: `${baseUrl}/api/screenshot?title=${encodeURIComponent('Lichess Review')}&description=${encodeURIComponent('Analyze your chess games and track your progress!')}`,
   },
 };
 
@@ -56,11 +56,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta property="twitter:image" content={`${baseUrl}/api/og?title=${encodeURIComponent('Lichess Review')}&description=${encodeURIComponent('Analyze your chess games and track your progress!')}`} />
+        <meta property="twitter:image" content={`${baseUrl}/api/screenshot?title=${encodeURIComponent('Lichess Review')}&description=${encodeURIComponent('Analyze your chess games and track your progress!')}`} />
         <meta property="twitter:card" content="summary_large_image" />
         <meta property="twitter:title" content="Lichess Review" />
         <meta property="twitter:description" content="Analyze your chess games and track your progress with the Lichess Review. Created with ❤️ by Aditya and the Open Source Community." />
-        <meta property="og:image" content={`${baseUrl}/api/og?title=${encodeURIComponent('Lichess Review')}&description=${encodeURIComponent('Analyze your chess games and track your progress!')}`} />
+        <meta property="og:image" content={`${baseUrl}/api/screenshot?title=${encodeURIComponent('Lichess Review')}&description=${encodeURIComponent('Analyze your chess games and track your progress!')}`} />
         <meta property="og:site_name" content="Lichess Review" />
         <meta property="og:title" content="Lichess Review" />
         <meta property="og:description" content="Analyze your chess games and track your progress with the Lichess Review. Created with ❤️ by Aditya and the Open Source Community." />
