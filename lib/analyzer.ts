@@ -53,6 +53,10 @@ export const analyzeGames = (
 
   // Process each game using a for-of loop.
   for (const game of games) {
+    // Skip processing for matchups if opponent is Anonymous
+    const opponent = game.white === username ? game.black : game.white;
+    const isValidOpponent = opponent !== 'Anonymous';
+
     // Categorize game by time control.
     const timeControl = categorizeTimeControl(game.timeControl);
     stats.gameTypes[timeControl] = (stats.gameTypes[timeControl] || 0) + 1;
@@ -153,12 +157,17 @@ export const analyzeGames = (
       openingStats[opening].losses++;
     }
 
-    // Process head-to-head statistics.
-    const opponent = isWhite ? game.black : game.white;
-    if (opponent) {
+    // Only process head-to-head stats for non-Anonymous opponents
+    if (isValidOpponent) {
       if (!headToHeadStats[opponent]) {
-        headToHeadStats[opponent] = { wins: 0, losses: 0, draws: 0, lastPlayed: new Date(0) };
+        headToHeadStats[opponent] = {
+          wins: 0,
+          losses: 0,
+          draws: 0,
+          lastPlayed: game.date || new Date()
+        };
       }
+
       if (isWin) {
         headToHeadStats[opponent].wins++;
       } else if (isDraw) {
@@ -166,9 +175,10 @@ export const analyzeGames = (
       } else {
         headToHeadStats[opponent].losses++;
       }
-      // Reuse game date if available.
-      const opponentDate = game.date ? new Date(game.date) : new Date();
-      headToHeadStats[opponent].lastPlayed = opponentDate;
+      // Update last played date if more recent
+      if (game.date && game.date > headToHeadStats[opponent].lastPlayed) {
+        headToHeadStats[opponent].lastPlayed = game.date;
+      }
     }
 
     // Process game lengths: compute once.
