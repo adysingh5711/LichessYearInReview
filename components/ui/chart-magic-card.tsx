@@ -27,26 +27,26 @@ export function ChartMagicCard({
     const mouseY = useMotionValue(-gradientSize);
     const cardRef = useRef<HTMLDivElement>(null);
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = useCallback((e: MouseEvent) => {
         if (!cardRef.current) return;
         const rect = cardRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         mouseX.set(x);
         mouseY.set(y);
-    };
+    }, [mouseX, mouseY]);
 
-    const handleMouseOut = () => {
+    const handleMouseOut = useCallback(() => {
         mouseX.set(-gradientSize);
         mouseY.set(-gradientSize);
-    };
+    }, [gradientSize, mouseX, mouseY]);
 
-    const handleMouseEnter = () => {
+    const handleMouseEnter = useCallback(() => {
         if (!cardRef.current) return;
         const rect = cardRef.current.getBoundingClientRect();
         mouseX.set(rect.width / 2);
         mouseY.set(rect.height / 2);
-    };
+    }, [mouseX, mouseY]);
 
     useEffect(() => {
         const card = cardRef.current;
