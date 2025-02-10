@@ -46,6 +46,7 @@ import {
   CalendarRange,
   Loader2,
   HelpCircle,
+  X,
 } from "lucide-react";
 
 // Types
@@ -136,6 +137,13 @@ const ChessAnalyzer = () => {
       setError("Please select a valid PGN file");
       setFile(null);
     }
+  };
+
+  const handleRemoveFile = () => {
+    setFile(null);
+    // Reset the input value to allow uploading the same file again
+    const input = document.getElementById('pgn-upload') as HTMLInputElement;
+    if (input) input.value = '';
   };
 
   const handleFetchGames = async () => {
@@ -690,6 +698,18 @@ const ChessAnalyzer = () => {
                       <span className="text-sm truncate">
                         {file ? file.name : "Choose PGN file"}
                       </span>
+                      {file && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleRemoveFile();
+                          }}
+                          className="ml-auto p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
+                          aria-label="Remove file"
+                        >
+                          <X className="w-4 h-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
+                        </button>
+                      )}
                       <Input
                         id="pgn-upload"
                         type="file"
