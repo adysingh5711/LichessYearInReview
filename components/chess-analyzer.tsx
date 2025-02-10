@@ -30,6 +30,7 @@ import {
   Bar,
   ComposedChart,
   Brush,
+  TooltipProps,
 } from "recharts";
 
 // Icons
@@ -49,7 +50,6 @@ import {
 
 // Types
 import { AnalysisStats } from "@/types/chess";
-import type { TooltipProps } from "recharts";
 import type {
   ValueType,
   NameType,
@@ -532,10 +532,10 @@ const ChessAnalyzer = () => {
     setShowHelp(true);
   };
 
-  const handleMouseLeave = (e: any) => {
+  const handleMouseLeave = (e: MouseEvent) => {
     if (tooltipRef.current) {
       const rect = tooltipRef.current.getBoundingClientRect();
-      const helpIconRect = e.target.getBoundingClientRect();
+      const helpIconRect = (e.target as HTMLElement).getBoundingClientRect();
       const buffer = 20;
 
       // Check if mouse is outside both the tooltip and help icon areas (including buffer)
