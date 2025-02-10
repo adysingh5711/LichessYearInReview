@@ -92,6 +92,7 @@ const ChessAnalyzer = () => {
   const [isFetching, setIsFetching] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const [loadingPercentage, setLoadingPercentage] = useState(0);
 
   // Calculated values
   const totalGames = stats
@@ -194,7 +195,7 @@ const ChessAnalyzer = () => {
     }
 
     setLoading(true);
-    setError("");
+    setLoadingPercentage(0);
 
     try {
       const formData = new FormData();
@@ -207,11 +208,19 @@ const ChessAnalyzer = () => {
       });
 
       if (!response.ok) throw new Error(await response.text());
+
+      // Simulate loading percentage update (replace with actual logic if available)
+      for (let i = 0; i <= 100; i += 10) {
+        setLoadingPercentage(i);
+        await new Promise(resolve => setTimeout(resolve, 100)); // Simulate delay
+      }
+
       setStats(await response.json());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to analyze games");
     } finally {
       setLoading(false);
+      setLoadingPercentage(0);
     }
   };
 
@@ -674,7 +683,9 @@ const ChessAnalyzer = () => {
                   disabled={isFetching || loading}
                 >
                   {(isFetching || loading) && (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <>
+                      {loading ? `${loadingPercentage}% ` : <Loader2 className="w-4 h-4 animate-spin" />}
+                    </>
                   )}
                   {isFetching ? "Fetching..." : loading ? "Analyzing..." : "Analyze Games"}
                 </Button>

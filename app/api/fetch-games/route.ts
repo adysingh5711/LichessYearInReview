@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Chess } from 'chess.js';
+
+export const maxDuration = 60;
 
 interface LichessGame {
     id: string;
