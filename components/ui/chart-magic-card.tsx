@@ -61,7 +61,7 @@ export function ChartMagicCard({
             card.removeEventListener("mouseout", handleMouseOut);
             card.removeEventListener("mouseenter", handleMouseEnter);
         };
-    }, []);
+    }, [handleMouseEnter, handleMouseMove, handleMouseOut]);
 
     // Initialize position off-screen
     useEffect(() => {

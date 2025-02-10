@@ -8,12 +8,20 @@ import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 
 interface ShareDialogProps {
-    open: boolean
-    onOpenChange: (open: boolean) => void
-    stats: any // Replace with proper type
-    totalGames: number
-    peakRating: number
-    username: string
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    stats: {
+        headToHead: Array<{ opponent: string; games: number; wins: number }>; // Define the structure based on your data
+        results: { wins: number; losses: number; draws: number };
+        streaks: { winStreak: number };
+        colorStats: { White: { wins: number }; Black: { wins: number } };
+        openings: Array<{ name: string; count: number; winRate: number }>;
+        monthlyPerformance: Array<{ month: string; winRate: number }>;
+        ratingProgression: Array<{ rating: number }>;
+    };
+    totalGames: number;
+    peakRating: number;
+    username: string;
 }
 
 interface StatBlockProps {
