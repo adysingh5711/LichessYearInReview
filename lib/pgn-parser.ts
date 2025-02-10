@@ -54,7 +54,7 @@ export const parseGame = (pgnText: string): GameStats[] => {
         result: headers.Result,
         white: headers.White,
         black: headers.Black,
-        opening: headers.Opening || "Unknown Opening",
+        opening: headers.Opening || headers.ECO ? `${headers.Opening || 'Unknown'} (${headers.ECO || '?'})` : "Unknown Opening",
         date: headers.Date ? parsePGNDate(headers.Date) : new Date(),
         whiteElo: headers.WhiteElo || "0",
         blackElo: headers.BlackElo || "0",

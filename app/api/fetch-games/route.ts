@@ -53,107 +53,137 @@ function formatTimeControl(game: LichessGame): string {
 }
 
 export async function GET(req: NextRequest) {
-    const searchParams = new URLSearchParams(req.nextUrl.search);
-    const username = searchParams.get('username');
-    const startYear = searchParams.get('startYear');
-    const endYear = searchParams.get('endYear');
-
-    if (!username || !startYear || !endYear) {
-        return NextResponse.json({ error: "Missing required parameters" }, { status: 400 });
-    }
-
-    const startDate = new Date(parseInt(startYear), 0, 1).getTime();
-    const endDate = new Date(parseInt(endYear), 11, 31, 23, 59, 59).getTime();
-
     try {
-        // Request games from Lichess API
-        const response = await fetch(
-            `https://lichess.org/api/games/user/${username}?since=${startDate}&until=${endDate}&max=2000&perfType=bullet,blitz,rapid,classical`,
-            {
-                headers: {
-                    'Accept': 'application/x-ndjson'
-                }
-            }
-        );
+        const { searchParams } = new URL(req.url);
+        const username = searchParams.get('username');
+        const startYear = searchParams.get('startYear') || '';
+        const endYear = searchParams.get('endYear') || '';
 
-        if (!response.ok) {
-            throw new Error('Failed to fetch games from Lichess');
+        if (!username) {
+            return new Response('Username is required', { status: 400 });
         }
 
+        console.log(`Fetching games for user: ${username}, period: ${startYear}-${endYear}`);
+
+        // Convert years to timestamps
+        const since = startYear ? new Date(`${startYear}-01-01`).getTime() : undefined;
+        const until = endYear ? new Date(`${endYear}-12-31`).getTime() : undefined;
+
+        // Construct the URL with proper parameters - removed max limit
+        const url = new URL(`https://lichess.org/api/games/user/${username}`);
+        if (since) url.searchParams.append('since', since.toString());
+        if (until) url.searchParams.append('until', until.toString());
+        url.searchParams.append('moves', 'true');
+        url.searchParams.append('opening', 'true');
+        // Add pgnInJson to get better structured data
+        url.searchParams.append('pgnInJson', 'true');
+
+        console.log('Fetching from URL:', url.toString());
+
+        const response = await fetch(url, {
+            headers: {
+                'Accept': 'application/x-ndjson',
+                'User-Agent': 'Chess Analyzer (https://github.com/yourusername/chess-analyzer)'
+            },
+            cache: 'no-store'
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Lichess API error:', {
+                status: response.status,
+                statusText: response.statusText,
+                error: errorText
+            });
+            throw new Error(`Lichess API error: ${response.status} ${errorText}`);
+        }
+
+        // Read and process the NDJSON response
         const text = await response.text();
+        console.log('Received response length:', text.length);
+
+        if (!text.trim()) {
+            console.error('Empty response from Lichess API');
+            throw new Error('No games found for the specified period');
+        }
+
         const games = text.trim().split('\n')
-            .filter(line => line.trim())
-            .map(line => JSON.parse(line) as LichessGame)
-            .filter(game =>
-                game.status !== 'noStart' &&
-                game.variant === 'standard' &&
-                game.moves
-            );
+            .map((line, index) => {
+                try {
+                    return JSON.parse(line);
+                } catch (e) {
+                    console.error(`Failed to parse game at line ${index}:`, line);
+                    return null;
+                }
+            })
+            .filter(Boolean);
+
+        console.log(`Successfully parsed ${games.length} games`);
+
+        if (games.length === 0) {
+            throw new Error('No valid games found for the specified period');
+        }
 
         // Convert games to PGN format
         const pgn = games.map(game => {
-            const date = new Date(game.createdAt);
-            const dateStr = date.toISOString().split('T')[0].replace(/-/g, '.');
+            try {
+                const date = new Date(game.createdAt);
+                const dateStr = date.toISOString().split('T')[0].replace(/-/g, '.');
 
-            // Determine game result
-            let result;
-            if (game.status === 'draw' || game.status === 'stalemate') {
-                result = '1/2-1/2';
-            } else if (game.winner) {
-                result = game.winner === 'white' ? '1-0' : '0-1';
-            } else {
-                result = '*';
+                // Determine game result
+                let result;
+                if (game.status === 'draw' || game.status === 'stalemate') {
+                    result = '1/2-1/2';
+                } else if (game.winner) {
+                    result = game.winner === 'white' ? '1-0' : '0-1';
+                } else {
+                    result = '*';
+                }
+
+                // Format opening information consistently
+                const opening = game.opening ? `${game.opening.name} (${game.opening.eco})` : 'Unknown Opening';
+
+                // Format headers with all necessary information
+                const headers = [
+                    `[Event "Lichess ${game.speed || 'Game'}"]`,
+                    `[Site "https://lichess.org/${game.id}"]`,
+                    `[Date "${dateStr}"]`,
+                    `[Round "-"]`,
+                    `[White "${game.players.white?.user?.name || 'Anonymous'}"]`,
+                    `[Black "${game.players.black?.user?.name || 'Anonymous'}"]`,
+                    `[Result "${result}"]`,
+                    `[WhiteElo "${game.players.white?.rating || '?'}"]`,
+                    `[BlackElo "${game.players.black?.rating || '?'}"]`,
+                    `[WhiteRatingDiff "${game.players.white?.ratingDiff || '?'}"]`,
+                    `[BlackRatingDiff "${game.players.black?.ratingDiff || '?'}"]`,
+                    `[TimeControl "${game.clock ? `${game.clock.initial}+${game.clock.increment}` : '-'}"]`,
+                    `[Opening "${opening}"]`,
+                    `[ECO "${game.opening?.eco || '?'}"]`,
+                    `[Termination "${game.status}"]`,
+                    `[Variant "Standard"]`,
+                    ''
+                ].join('\n');
+
+                return `${headers}\n${game.moves || ''}\n`;
+            } catch (e) {
+                console.error('Error processing game:', e);
+                return null;
             }
+        }).filter(Boolean).join('\n\n');
 
-            // Get time control category
-            const timeControl = getTimeControl(game);
+        console.log('Successfully generated PGN data');
 
-            // Format headers with all necessary information
-            const headers = [
-                `[Event "Lichess ${timeControl}"]`,
-                `[Site "https://lichess.org/${game.id}"]`,
-                `[Date "${dateStr}"]`,
-                `[Round "-"]`,
-                `[White "${game.players.white?.user?.name || 'Anonymous'}"]`,
-                `[Black "${game.players.black?.user?.name || 'Anonymous'}"]`,
-                `[Result "${result}"]`,
-                `[WhiteElo "${game.players.white?.rating || '?'}"]`,
-                `[BlackElo "${game.players.black?.rating || '?'}"]`,
-                `[WhiteRatingDiff "${game.players.white?.ratingDiff || '?'}"]`,
-                `[BlackRatingDiff "${game.players.black?.ratingDiff || '?'}"]`,
-                `[TimeControl "${formatTimeControl(game)}"]`,
-                `[ECO "${game.opening?.eco || '?'}"]`,
-                `[Opening "${game.opening?.name || '?'}"]`,
-                `[Termination "${game.status}"]`,
-                `[Variant "Standard"]`,
-                ''
-            ].join('\n');
-
-            // Format moves with proper move numbers
-            const moveText = game.moves.split(' ')
-                .map((move, i) => {
-                    if (i % 2 === 0) {
-                        return `${Math.floor(i / 2 + 1)}. ${move}`;
-                    }
-                    return move;
-                })
-                .join(' ');
-
-            // Ensure proper spacing between headers, moves, and result
-            return `${headers}\n\n${moveText} ${result}\n\n`;
-        }).join('');
-
-        // Return PGN data
-        return new NextResponse(pgn, {
+        return new Response(pgn, {
             headers: {
-                'Content-Type': 'application/x-chess-pgn'
+                'Content-Type': 'application/x-chess-pgn',
+                'Cache-Control': 'no-cache'
             }
         });
-
     } catch (error) {
-        console.error('Error fetching games:', error);
-        return NextResponse.json({
-            error: "Failed to fetch games from Lichess. Please upload your PGN file instead."
-        }, { status: 500 });
+        console.error('Error in fetch-games route:', error);
+        return new Response(
+            error instanceof Error ? error.message : 'Failed to fetch games from Lichess',
+            { status: 500 }
+        );
     }
 }
