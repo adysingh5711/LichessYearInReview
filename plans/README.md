@@ -10,7 +10,7 @@ done.
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 001  | Verification baseline (CI, typecheck, lint rules, single lockfile) | P1 | S | — | DONE |
-| 002  | Characterization tests for analyzer + PGN parser | P1 | M | 001 | TODO |
+| 002  | Characterization tests for analyzer + PGN parser | P1 | M | 001 | DONE |
 | 003  | Fix OG image pipeline (retire puppeteer, wire /api/og) | P1 | S | 001 | TODO |
 | 004  | Case-insensitive username matching | P1 | S | 002 | TODO |
 | 005  | Stats-math bug batch (aborted games, NaN ratings, dates) | P1 | M | 002, 004 | TODO |
