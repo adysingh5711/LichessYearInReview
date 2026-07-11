@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect, ChangeEvent, useMemo, useRef } from "react";
 import { useTheme } from "next-themes";
-import { useRouter } from "next/navigation";
-import { toPng } from 'html-to-image';
 
 // UI components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { MagicCard } from "@/components/ui/magic-card";
 import { ChartMagicCard } from "@/components/ui/chart-magic-card";
 import { ShareDialog } from "@/components/share-dialog";
@@ -35,12 +32,8 @@ import {
 
 // Icons
 import {
-  FileInput,
   Upload,
-  Trophy,
   User,
-  Clock,
-  Swords,
   Moon,
   Sun,
   CalendarRange,
@@ -86,33 +79,16 @@ const ChessAnalyzer = () => {
   const [selectedGameType, setSelectedGameType] = useState<string>("All");
   const [showShareModal, setShowShareModal] = useState(false);
   const { theme } = useTheme();
-  const router = useRouter();
   const [startYear, setStartYear] = useState(new Date().getFullYear().toString());
   const [endYear, setEndYear] = useState(new Date().getFullYear().toString());
   const [isFetching, setIsFetching] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const [loadingPercentage, setLoadingPercentage] = useState(0);
 
   // Calculated values
   const totalGames = stats
     ? stats.results.wins + stats.results.losses + stats.results.draws
     : 0;
-
-  const mostPlayedOpening = stats?.openings?.length
-    ? [...stats.openings].sort((a, b) => b.count - a.count)[0]
-    : { name: "N/A", count: 0 };
-
-  const filteredOpponents = stats?.headToHead?.length
-    ? stats.headToHead.filter(o =>
-      !o.opponent?.toLowerCase().includes('lichess ai') &&
-      !o.opponent?.toLowerCase().includes('bot')
-    )
-    : [];
-
-  const bestWinRateMonth = stats?.monthlyPerformance?.length
-    ? [...stats.monthlyPerformance].sort((a, b) => b.winRate - a.winRate)[0]
-    : { month: "N/A", winRate: 0 };
 
   const peakRating = stats?.ratingProgression?.length
     ? Math.max(...stats.ratingProgression.map(r => r.rating))
@@ -196,7 +172,6 @@ const ChessAnalyzer = () => {
     }
 
     setLoading(true);
-    setLoadingPercentage(0);
 
     try {
       const formData = new FormData();
@@ -210,70 +185,15 @@ const ChessAnalyzer = () => {
 
       if (!response.ok) throw new Error(await response.text());
 
-      // Simulate loading percentage update (replace with actual logic if available)
-      for (let i = 0; i <= 100; i += 10) {
-        setLoadingPercentage(i);
-        await new Promise(resolve => setTimeout(resolve, 100)); // Simulate delay
-      }
-
       setStats(await response.json());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to analyze games");
     } finally {
       setLoading(false);
-      setLoadingPercentage(0);
     }
   };
 
   const handleShare = () => stats && setShowShareModal(true);
-
-  const handleDownload = async () => {
-    const cardElement = document.getElementById('share-card');
-    if (!cardElement) return;
-
-    try {
-      const dataUrl = await toPng(cardElement, {
-        backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
-        pixelRatio: 2,
-        cacheBust: true,
-        filter: (node) => {
-          // Exclude the download button from the image
-          return !(node instanceof HTMLElement && node.id === 'download-button');
-        },
-        style: {
-          transform: 'none', // Disable any transforms
-          contain: 'strict' // Prevent layout shifts
-        }
-      });
-
-      const link = document.createElement('a');
-      link.download = `chess-year-review-${username}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (error) {
-      console.error('Error generating image:', error);
-    }
-  };
-
-  const StatBlock = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div className="space-y-2">
-      <h3 className="text-sm font-semibold text-[hsl(272.49deg_100%_42.99%)] dark:text-[hsl(272.49deg_100%_82.99%)]">{title}</h3>
-      <div className="space-y-1 text-sm">{children}</div>
-    </div>
-  );
-
-  const StatItem = ({ label, value, truncate }: {
-    label: string;
-    value: string | number;
-    truncate?: boolean
-  }) => (
-    <div className="flex justify-between">
-      <span className="text-[hsl(var(--primary))] dark:text-[hsl(var(--primary))] font-medium">{label}:</span>
-      <span className={`font-semibold text-[hsl(272.49deg_100%_42.99%)] dark:text-[hsl(272.49deg_100%_82.99%)] ${truncate ? 'max-w-[120px] truncate' : ''}`}>
-        {value || '-'}
-      </span>
-    </div>
-  );
 
   // Chart rendering functions
   const renderWinRateChart = (data: AnalysisStats["monthlyPerformance"]) => (
@@ -544,9 +464,16 @@ const ChessAnalyzer = () => {
     stats?.openings ? [...stats.openings].sort((a, b) => b.winRate - a.winRate) : []
     , [stats]);
 
-  const headToHeadSorted = useMemo(() =>
-    stats?.headToHead ? [...stats.headToHead].sort((a, b) => b.games - a.games) : []
+  const openingsByLosses = useMemo(() =>
+    stats?.openings ? [...stats.openings].sort((a, b) => b.losses - a.losses) : []
     , [stats]);
+
+  const filteredProgression = useMemo(() => {
+    if (!stats) return [];
+    return selectedGameType === "All"
+      ? stats.ratingProgression
+      : stats.ratingProgression.filter(r => r.gameType === selectedGameType);
+  }, [stats, selectedGameType]);
 
   const handleMouseEnter = () => {
     setShowHelp(true);
@@ -685,11 +612,7 @@ const ChessAnalyzer = () => {
                   onClick={handleFetchGames}
                   disabled={isFetching || loading}
                 >
-                  {(isFetching || loading) && (
-                    <>
-                      {loading ? `${loadingPercentage}% ` : <Loader2 className="w-4 h-4 animate-spin" />}
-                    </>
-                  )}
+                  {(isFetching || loading) && <Loader2 className="w-4 h-4 animate-spin" />}
                   {isFetching ? "Fetching..." : loading ? "Analyzing..." : "Analyze Games"}
                 </Button>
 
@@ -738,7 +661,7 @@ const ChessAnalyzer = () => {
                     <HelpCircle
                       className="w-5 h-5 text-muted-foreground cursor-pointer hover:text-primary transition-colors"
                       onMouseEnter={handleMouseEnter}
-                      onMouseLeave={(e) => {
+                      onMouseLeave={() => {
                         // Start a timer to check if mouse moved to tooltip
                         setTimeout(() => {
                           if (!tooltipRef.current?.matches(':hover')) {
@@ -930,11 +853,7 @@ const ChessAnalyzer = () => {
                     </TabsContent>
                     <TabsContent value="mostLosses">
                       <div className="h-[300px]">
-                        {renderOpeningsChart(
-                          [...stats.openings].sort(
-                            (a, b) => b.losses - a.losses
-                          )
-                        )}
+                        {renderOpeningsChart(openingsByLosses)}
                       </div>
                     </TabsContent>
                   </Tabs>
@@ -967,15 +886,7 @@ const ChessAnalyzer = () => {
                 <CardContent className="overflow-visible">
                   <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={
-                          selectedGameType === "All"
-                            ? stats.ratingProgression
-                            : stats.ratingProgression.filter(
-                              (r) => r.gameType === selectedGameType
-                            )
-                        }
-                      >
+                      <LineChart data={filteredProgression}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis
                           dataKey="date"
@@ -1045,21 +956,8 @@ const ChessAnalyzer = () => {
                               stroke={theme === "dark" ? "#94a3b8" : "#cbd5e1"} // Handle border
                             />
                           )}
-                          startIndex={Math.max(
-                            0,
-                            (selectedGameType === "All"
-                              ? stats.ratingProgression.length
-                              : stats.ratingProgression.filter(
-                                (r) => r.gameType === selectedGameType
-                              ).length) - 366
-                          )}
-                          endIndex={
-                            (selectedGameType === "All"
-                              ? stats.ratingProgression.length
-                              : stats.ratingProgression.filter(
-                                (r) => r.gameType === selectedGameType
-                              ).length) - 1
-                          }
+                          startIndex={Math.max(0, filteredProgression.length - 366)}
+                          endIndex={filteredProgression.length - 1}
                         />
                       </LineChart>
                     </ResponsiveContainer>
@@ -1146,7 +1044,7 @@ const ChessAnalyzer = () => {
                             />
                           )}
                           startIndex={0}
-                          endIndex={10}
+                          endIndex={Math.min(10, stats.headToHead.length - 1)}
                         />
                       </BarChart>
                     </ResponsiveContainer>

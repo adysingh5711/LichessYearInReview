@@ -1,57 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 export const maxDuration = 60;
-
-interface LichessGame {
-    id: string;
-    rated: boolean;
-    variant: string;
-    speed: string;
-    perf: string;
-    createdAt: number;
-    lastMoveAt: number;
-    status: string;
-    players: {
-        white: {
-            user?: { name: string },
-            rating?: number,
-            ratingDiff?: number
-        };
-        black: {
-            user?: { name: string },
-            rating?: number,
-            ratingDiff?: number
-        };
-    };
-    winner?: string;
-    moves: string;
-    clock?: {
-        initial: number,
-        increment: number,
-        totalTime: number
-    };
-    opening?: {
-        name: string,
-        eco?: string,
-        ply?: number
-    };
-}
-
-function getTimeControl(game: LichessGame): string {
-    if (game.speed === 'correspondence') return 'Correspondence';
-    if (!game.clock) return game.speed;
-
-    const minutes = game.clock.initial / 60;
-    if (minutes < 3) return 'Bullet';
-    if (minutes < 10) return 'Blitz';
-    if (minutes <= 30) return 'Rapid';
-    return 'Classical';
-}
-
-function formatTimeControl(game: LichessGame): string {
-    if (!game.clock) return '-';
-    return `${game.clock.initial}+${game.clock.increment}`;
-}
 
 export async function GET(req: NextRequest) {
     try {
@@ -118,7 +67,7 @@ export async function GET(req: NextRequest) {
             .map((line, index) => {
                 try {
                     return JSON.parse(line);
-                } catch (e) {
+                } catch {
                     console.error(`Failed to parse game at line ${index}:`, line);
                     return null;
                 }

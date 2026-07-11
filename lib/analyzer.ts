@@ -1,5 +1,5 @@
 import { GameStats, AnalysisStats } from "@/types/chess";
-import { categorizeTimeControl, parsePGNDate } from "./pgn-parser";
+import { categorizeTimeControl } from "./pgn-parser";
 
 export const analyzeGames = (
   games: GameStats[],
