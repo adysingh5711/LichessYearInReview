@@ -18,7 +18,7 @@ done.
 | 007  | Dependency cleanup (one animation lib, drop dead packages) | P2 | S | 001 | DONE |
 | 008  | Dead code removal + quick UI perf fixes | P2 | S | 005, 006 | DONE |
 | 009  | Fast PGN parsing (drop chess.js move replay) | P2 | M | 002, 005 | DONE |
-| 010  | Split chess-analyzer god component | P3 | L | 008 | TODO |
+| 010  | Split chess-analyzer god component | P3 | L | 008 | DONE (580 lines, not <500 — see note) |
 | 011  | README rewrite + retire lyir.py | P3 | S | — (best after 003, 009) | TODO |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJECTED (with one-line rationale)
