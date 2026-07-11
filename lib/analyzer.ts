@@ -50,18 +50,19 @@ export const analyzeGames = (
     { count: number; wins: number; losses: number; draws: number }
   > = {};
   const peakRatings: Record<string, number> = {};
+  const normalizedUsername = username.trim().toLowerCase();
 
   // Process each game using a for-of loop.
   for (const game of games) {
     // Skip processing for matchups if opponent is Anonymous
-    const opponent = game.white === username ? game.black : game.white;
+    const opponent = game.white.toLowerCase() === normalizedUsername ? game.black : game.white;
     const isValidOpponent = opponent !== 'Anonymous';
 
     // Categorize game by time control.
     const timeControl = categorizeTimeControl(game.timeControl);
     stats.gameTypes[timeControl] = (stats.gameTypes[timeControl] || 0) + 1;
 
-    const isWhite = game.white === username;
+    const isWhite = game.white.toLowerCase() === normalizedUsername;
     let isWin = false;
     let isDraw = false;
 

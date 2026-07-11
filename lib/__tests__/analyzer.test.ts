@@ -147,10 +147,8 @@ describe("analyzeGames", () => {
     expect(stats.resultDistribution.wins.average).toBe(0);
   });
 
-  it("KNOWN BUG (plan 004): username match is case-sensitive", () => {
-    const lower = analyzeGames(fixture, "testuser");
-    const proper = analyzeGames(fixture, "TestUser");
-    expect(lower.results).not.toEqual(proper.results);
-    expect(lower.results).toEqual({ wins: 2, losses: 2, draws: 1 });
+  it("matches usernames case-insensitively and trims whitespace", () => {
+    expect(analyzeGames(fixture, "testuser")).toEqual(analyzeGames(fixture, "TestUser"));
+    expect(analyzeGames(fixture, " TestUser ")).toEqual(analyzeGames(fixture, "TestUser"));
   });
 });

@@ -12,7 +12,7 @@ done.
 | 001  | Verification baseline (CI, typecheck, lint rules, single lockfile) | P1 | S | — | DONE |
 | 002  | Characterization tests for analyzer + PGN parser | P1 | M | 001 | DONE |
 | 003  | Fix OG image pipeline (retire puppeteer, wire /api/og) | P1 | S | 001 | DONE |
-| 004  | Case-insensitive username matching | P1 | S | 002 | TODO |
+| 004  | Case-insensitive username matching | P1 | S | 002 | DONE |
 | 005  | Stats-math bug batch (aborted games, NaN ratings, dates) | P1 | M | 002, 004 | TODO |
 | 006  | API input hardening (upload limits, validation, safe errors) | P2 | M | 005 | TODO |
 | 007  | Dependency cleanup (one animation lib, drop dead packages) | P2 | S | 001 | TODO |
