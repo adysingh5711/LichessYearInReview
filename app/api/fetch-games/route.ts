@@ -67,8 +67,12 @@ export async function GET(req: NextRequest) {
         console.log(`Fetching games for user: ${username}, period: ${startYear}-${endYear}`);
 
         // Convert years to timestamps
-        const since = startYear ? new Date(`${startYear}-01-01`).getTime() : undefined;
-        const until = endYear ? new Date(`${endYear}-12-31`).getTime() : undefined;
+        const yearRe = /^\d{4}$/;
+        if ((startYear && !yearRe.test(startYear)) || (endYear && !yearRe.test(endYear))) {
+            return new Response('startYear/endYear must be 4-digit years', { status: 400 });
+        }
+        const since = startYear ? Date.UTC(Number(startYear), 0, 1) : undefined;
+        const until = endYear ? Date.UTC(Number(endYear) + 1, 0, 1) - 1 : undefined;
 
         // Construct the URL with proper parameters - removed max limit
         const url = new URL(`https://lichess.org/api/games/user/${username}`);
@@ -153,13 +157,13 @@ export async function GET(req: NextRequest) {
                     `[White "${game.players.white?.user?.name || 'Anonymous'}"]`,
                     `[Black "${game.players.black?.user?.name || 'Anonymous'}"]`,
                     `[Result "${result}"]`,
-                    `[WhiteElo "${game.players.white?.rating || '?'}"]`,
-                    `[BlackElo "${game.players.black?.rating || '?'}"]`,
-                    `[WhiteRatingDiff "${game.players.white?.ratingDiff || '?'}"]`,
-                    `[BlackRatingDiff "${game.players.black?.ratingDiff || '?'}"]`,
+                    `[WhiteElo "${game.players.white?.rating ?? '?'}"]`,
+                    `[BlackElo "${game.players.black?.rating ?? '?'}"]`,
+                    `[WhiteRatingDiff "${game.players.white?.ratingDiff ?? '?'}"]`,
+                    `[BlackRatingDiff "${game.players.black?.ratingDiff ?? '?'}"]`,
                     `[TimeControl "${game.clock ? `${game.clock.initial}+${game.clock.increment}` : '-'}"]`,
                     `[Opening "${opening}"]`,
-                    `[ECO "${game.opening?.eco || '?'}"]`,
+                    `[ECO "${game.opening?.eco ?? '?'}"]`,
                     `[Termination "${game.status}"]`,
                     `[Variant "Standard"]`,
                     ''

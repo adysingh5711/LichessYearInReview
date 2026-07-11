@@ -23,7 +23,7 @@ export function parsePGNDate(dateStr: string): Date {
   const year = parseInt(parts[0], 10) || 2000;
   const month = (parseInt(parts[1], 10) - 1) || 0; // Months are 0-indexed
   const day = parseInt(parts[2], 10) || 1;
-  return new Date(year, month, day);
+  return new Date(Date.UTC(year, month, day));
 }
 
 export const parseGame = (pgnText: string): GameStats[] => {

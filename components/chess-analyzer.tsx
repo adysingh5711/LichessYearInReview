@@ -285,7 +285,7 @@ const ChessAnalyzer = () => {
             const [year, m] = month.split("-");
             return new Date(parseInt(year), parseInt(m) - 1).toLocaleString(
               "default",
-              { month: "short" }
+              { month: "short", timeZone: "UTC" }
             );
           }}
           label={{
@@ -348,6 +348,7 @@ const ChessAnalyzer = () => {
             {new Date(data.month).toLocaleDateString("en-US", {
               year: "numeric",
               month: "long",
+              timeZone: "UTC",
             })}
           </p>
           <p>Games: {data.games}</p>
@@ -518,6 +519,7 @@ const ChessAnalyzer = () => {
               year: "numeric",
               month: "long",
               day: "numeric",
+              timeZone: "UTC",
             })}
           </p>
           <p>Rating: {data.rating}</p>
@@ -980,6 +982,7 @@ const ChessAnalyzer = () => {
                             new Date(date).toLocaleDateString("en-US", {
                               month: "short",
                               day: "numeric",
+                              timeZone: "UTC",
                             })
                           }
                           label={{
@@ -1008,6 +1011,7 @@ const ChessAnalyzer = () => {
                                         year: "numeric",
                                         month: "long",
                                         day: "numeric",
+                                        timeZone: "UTC",
                                       }
                                     )}
                                   </p>

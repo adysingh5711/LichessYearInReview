@@ -20,16 +20,16 @@ describe("categorizeTimeControl", () => {
 describe("parsePGNDate", () => {
   it("parses a well-formed date", () => {
     const date = parsePGNDate("2024.03.09");
-    expect(date.getFullYear()).toBe(2024);
-    expect(date.getMonth()).toBe(2);
-    expect(date.getDate()).toBe(9);
+    expect(date.getUTCFullYear()).toBe(2024);
+    expect(date.getUTCMonth()).toBe(2);
+    expect(date.getUTCDate()).toBe(9);
   });
 
   it("falls back on placeholder dates", () => {
     const date = parsePGNDate("????.??.??");
-    expect(date.getFullYear()).toBe(2000);
-    expect(date.getMonth()).toBe(0);
-    expect(date.getDate()).toBe(1);
+    expect(date.getUTCFullYear()).toBe(2000);
+    expect(date.getUTCMonth()).toBe(0);
+    expect(date.getUTCDate()).toBe(1);
   });
 });
 
