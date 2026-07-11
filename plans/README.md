@@ -14,7 +14,7 @@ done.
 | 003  | Fix OG image pipeline (retire puppeteer, wire /api/og) | P1 | S | 001 | DONE |
 | 004  | Case-insensitive username matching | P1 | S | 002 | DONE |
 | 005  | Stats-math bug batch (aborted games, NaN ratings, dates) | P1 | M | 002, 004 | DONE |
-| 006  | API input hardening (upload limits, validation, safe errors) | P2 | M | 005 | TODO |
+| 006  | API input hardening (upload limits, validation, safe errors) | P2 | M | 005 | DONE |
 | 007  | Dependency cleanup (one animation lib, drop dead packages) | P2 | S | 001 | TODO |
 | 008  | Dead code removal + quick UI perf fixes | P2 | S | 005, 006 | TODO |
 | 009  | Fast PGN parsing (drop chess.js move replay) | P2 | M | 002, 005 | TODO |

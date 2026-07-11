@@ -163,7 +163,8 @@ const ChessAnalyzer = () => {
     setError("");
 
     try {
-      const response = await fetch(`/api/fetch-games?username=${username}&startYear=${startYear}&endYear=${endYear}`);
+      const params = new URLSearchParams({ username: username.trim(), startYear, endYear });
+      const response = await fetch(`/api/fetch-games?${params}`);
 
       if (!response.ok) {
         throw new Error(await response.text());
@@ -176,7 +177,7 @@ const ChessAnalyzer = () => {
       // Proceed with analysis
       await handleAnalyze(newFile);
     } catch (err) {
-      setError("Failed to fetch games from Lichess. Please upload your PGN file instead.");
+      setError(err instanceof Error && err.message ? err.message : "Failed to fetch games from Lichess. Please upload your PGN file instead.");
     } finally {
       setIsFetching(false);
     }

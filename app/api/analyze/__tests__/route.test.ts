@@ -26,6 +26,16 @@ jest.mock("next/server", () => ({
 const mockParseGame = parseGame as jest.MockedFunction<typeof parseGame>;
 const mockAnalyzeGames = analyzeGames as jest.MockedFunction<typeof analyzeGames>;
 
+// jsdom's File/Blob don't implement .text() — patch it on for these tests
+// (a real Node/Edge runtime File does; this is a test-environment-only gap).
+const makeFile = (content: string, name: string): File => {
+    const file = new File([content], name);
+    if (typeof file.text !== "function") {
+        Object.defineProperty(file, "text", { value: () => Promise.resolve(content) });
+    }
+    return file;
+};
+
 describe("POST /api/analyze", () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -66,7 +76,7 @@ describe("POST /api/analyze", () => {
         const req = {
             formData: jest.fn().mockResolvedValue({
                 get: (key: string) => {
-                    if (key === "file") return { text: () => Promise.resolve("invalid") };
+                    if (key === "file") return makeFile("invalid", "t.pgn");
                     if (key === "username") return "testUser";
                     return null;
                 },
@@ -79,6 +89,45 @@ describe("POST /api/analyze", () => {
             { status: 400 }
         );
         expect(mockParseGame).toHaveBeenCalledWith("invalid");
+    });
+
+    it("should return 413 if the file is too large", async () => {
+        const bigFile = makeFile("", "big.pgn");
+        Object.defineProperty(bigFile, "size", { value: 21 * 1024 * 1024 });
+
+        const req = {
+            formData: jest.fn().mockResolvedValue({
+                get: (key: string) => {
+                    if (key === "file") return bigFile;
+                    if (key === "username") return "testUser";
+                    return null;
+                },
+            }),
+        } as unknown as NextRequest;
+
+        await POST(req);
+        expect(NextResponse.json).toHaveBeenCalledWith(
+            { error: "PGN file too large (max 20MB)" },
+            { status: 413 }
+        );
+    });
+
+    it("should return 400 if the file field is not a File", async () => {
+        const req = {
+            formData: jest.fn().mockResolvedValue({
+                get: (key: string) => {
+                    if (key === "file") return "not-a-file";
+                    if (key === "username") return "testUser";
+                    return null;
+                },
+            }),
+        } as unknown as NextRequest;
+
+        await POST(req);
+        expect(NextResponse.json).toHaveBeenCalledWith(
+            { error: "Missing required fields" },
+            { status: 400 }
+        );
     });
 
     it("should return analysis stats for valid requests", async () => {
@@ -110,8 +159,7 @@ describe("POST /api/analyze", () => {
         const req = {
             formData: jest.fn().mockResolvedValue({
                 get: (key: string) => {
-                    if (key === "file")
-                        return { text: () => Promise.resolve("valid pgn") };
+                    if (key === "file") return makeFile("valid pgn", "t.pgn");
                     if (key === "username") return "testUser";
                     return null;
                 },
@@ -131,8 +179,7 @@ describe("POST /api/analyze", () => {
         const req = {
             formData: jest.fn().mockResolvedValue({
                 get: (key: string) => {
-                    if (key === "file")
-                        return { text: () => Promise.resolve("error pgn") };
+                    if (key === "file") return makeFile("error pgn", "t.pgn");
                     if (key === "username") return "testUser";
                     return null;
                 },

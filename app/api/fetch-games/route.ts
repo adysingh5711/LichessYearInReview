@@ -63,8 +63,9 @@ export async function GET(req: NextRequest) {
         if (!username) {
             return new Response('Username is required', { status: 400 });
         }
-
-        console.log(`Fetching games for user: ${username}, period: ${startYear}-${endYear}`);
+        if (!/^[a-zA-Z0-9_-]{2,30}$/.test(username)) {
+            return new Response('Invalid username', { status: 400 });
+        }
 
         // Convert years to timestamps
         const yearRe = /^\d{4}$/;
@@ -74,16 +75,16 @@ export async function GET(req: NextRequest) {
         const since = startYear ? Date.UTC(Number(startYear), 0, 1) : undefined;
         const until = endYear ? Date.UTC(Number(endYear) + 1, 0, 1) - 1 : undefined;
 
-        // Construct the URL with proper parameters - removed max limit
-        const url = new URL(`https://lichess.org/api/games/user/${username}`);
+        // Construct the URL with proper parameters
+        const url = new URL(`https://lichess.org/api/games/user/${encodeURIComponent(username)}`);
         if (since) url.searchParams.append('since', since.toString());
         if (until) url.searchParams.append('until', until.toString());
         url.searchParams.append('moves', 'true');
         url.searchParams.append('opening', 'true');
         // Add pgnInJson to get better structured data
         url.searchParams.append('pgnInJson', 'true');
-
-        console.log('Fetching from URL:', url.toString());
+        // bound memory: 10k games ≈ tens of MB of NDJSON; raise deliberately if users hit it
+        url.searchParams.append('max', '10000');
 
         const response = await fetch(url, {
             headers: {
@@ -94,13 +95,14 @@ export async function GET(req: NextRequest) {
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
             console.error('Lichess API error:', {
                 status: response.status,
                 statusText: response.statusText,
-                error: errorText
+                error: await response.text()
             });
-            throw new Error(`Lichess API error: ${response.status} ${errorText}`);
+            if (response.status === 404) return new Response('Lichess user not found', { status: 404 });
+            if (response.status === 429) return new Response('Lichess rate limit hit — try again shortly', { status: 429 });
+            return new Response('Failed to fetch games from Lichess', { status: 502 });
         }
 
         // Read and process the NDJSON response
@@ -186,9 +188,6 @@ export async function GET(req: NextRequest) {
         });
     } catch (error) {
         console.error('Error in fetch-games route:', error);
-        return new Response(
-            error instanceof Error ? error.message : 'Failed to fetch games from Lichess',
-            { status: 500 }
-        );
+        return new Response('Failed to fetch games from Lichess', { status: 500 });
     }
 }

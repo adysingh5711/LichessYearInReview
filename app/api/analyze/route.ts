@@ -5,16 +5,24 @@ import { AnalysisStats } from "@/types/chess";
 
 export const maxDuration = 60
 
+const MAX_PGN_BYTES = 20 * 1024 * 1024; // 20MB ≈ tens of thousands of games
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const file = formData.get("file") as File;
-    const username = formData.get("username") as string;
+    const file = formData.get("file");
+    const username = formData.get("username");
 
-    if (!file || !username) {
+    if (!(file instanceof File) || typeof username !== "string" || !username.trim()) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
+      );
+    }
+    if (file.size > MAX_PGN_BYTES) {
+      return NextResponse.json(
+        { error: "PGN file too large (max 20MB)" },
+        { status: 413 }
       );
     }
 
