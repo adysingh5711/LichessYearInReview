@@ -101,6 +101,7 @@ describe("POST /api/analyze", () => {
                 White: { wins: 0, losses: 0, draws: 0 },
                 Black: { wins: 0, losses: 0, draws: 0 },
             },
+            peakRatings: {},
         };
 
         mockParseGame.mockReturnValue(mockGames);
