@@ -1,4 +1,3 @@
 allowBuilds:
   '@vercel/speed-insights': true
-  puppeteer: true
   sharp: true
