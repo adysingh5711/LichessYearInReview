@@ -1,4 +1,3 @@
-import { Chess } from "chess.js";
 import { GameStats } from "@/types/chess";
 
 export const categorizeTimeControl = (timeControl: string): string => {
@@ -26,9 +25,30 @@ export function parsePGNDate(dateStr: string): Date {
   return new Date(Date.UTC(year, month, day));
 }
 
+const HEADER_RE = /^\[(\w+)\s+"([^"]*)"\]/gm;
+
+// Strips comments/variations/NAGs/move-numbers/result token, leaving one
+// whitespace-separated SAN token per ply. Moves are counted, not validated.
+const countPlies = (movetext: string): number => {
+  let cleaned = movetext
+    .replace(/\{[^}]*\}/g, " ") // comments (incl. lichess clock annotations)
+    .replace(/\$\d+/g, " ") // NAGs
+    .replace(/\d+\.(\.\.)?/g, " ") // move numbers: 1. / 1...
+    .replace(/(1-0|0-1|1\/2-1\/2|\*)\s*$/, " "); // result token
+
+  // ponytail: nested variations handled by looping the paren-strip until stable
+  let prev;
+  do {
+    prev = cleaned;
+    cleaned = cleaned.replace(/\([^()]*\)/g, " ");
+  } while (cleaned !== prev);
+
+  const trimmed = cleaned.trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+};
+
 export const parseGame = (pgnText: string): GameStats[] => {
   const games: GameStats[] = [];
-  const chess = new Chess();
 
   if (!pgnText.trim()) {
     return games;
@@ -37,11 +57,15 @@ export const parseGame = (pgnText: string): GameStats[] => {
   // Split PGN text into individual games
   const gameTexts = pgnText.split(/\n\n(?=\[)/).filter((text) => text.trim());
 
-  for (let gameText of gameTexts) {
+  for (const gameText of gameTexts) {
     try {
-      // Enable sloppy mode to handle check symbols and non-strict SAN
-      chess.loadPgn(gameText, { strict: false });
-      const headers = chess.header();
+      const [headerBlock, ...rest] = gameText.split(/\n\s*\n/);
+      const movetext = rest.join("\n\n");
+
+      const headers: Record<string, string> = {};
+      for (const match of headerBlock.matchAll(HEADER_RE)) {
+        headers[match[1]] = match[2];
+      }
 
       // Validate required fields
       if (!headers.White || !headers.Black || !headers.Result) {
@@ -60,7 +84,7 @@ export const parseGame = (pgnText: string): GameStats[] => {
         blackElo: headers.BlackElo || "0",
         whiteRatingDiff: headers.WhiteRatingDiff || "0",
         blackRatingDiff: headers.BlackRatingDiff || "0",
-        moves: chess.history(),
+        moveCount: countPlies(movetext),
       });
     } catch (e) {
       console.error("Error parsing game:", e);

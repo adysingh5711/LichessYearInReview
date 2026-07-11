@@ -70,7 +70,7 @@ describe("parseGame", () => {
   it("counts one move per ply", () => {
     const games = parseGame(TWO_GAME_PGN);
     const aliceGame = games.find((g) => g.white === "Alice")!;
-    expect(aliceGame.moves).toEqual(["e4", "c5", "Nf3"]);
+    expect(aliceGame.moveCount).toBe(3);
   });
 
   it("formats the opening as '<Opening> (<ECO>)'", () => {
@@ -92,5 +92,41 @@ describe("parseGame", () => {
 
   it("returns an empty array for garbage input", () => {
     expect(parseGame("not a pgn")).toEqual([]);
+  });
+});
+
+const singleGamePGN = (movetext: string) => `[Event "Rated Blitz game"]
+[White "Alice"]
+[Black "Bob"]
+[Result "1-0"]
+
+${movetext}`;
+
+describe("parseGame movetext edge cases", () => {
+  it("counts moves through lichess clock comments", () => {
+    const pgn = singleGamePGN(
+      "1. e4 { [%clk 0:03:00] } c5 { [%clk 0:03:00] } 2. Nf3 1-0"
+    );
+    expect(parseGame(pgn)[0].moveCount).toBe(3);
+  });
+
+  it("handles a black-to-move continuation", () => {
+    const pgn = singleGamePGN("1... c5 2. Nf3 1-0");
+    expect(parseGame(pgn)[0].moveCount).toBe(2);
+  });
+
+  it("excludes variations from the move count", () => {
+    const pgn = singleGamePGN("1. e4 (1. d4 d5) c5 1-0");
+    expect(parseGame(pgn)[0].moveCount).toBe(2);
+  });
+
+  it("counts a checkmate/promotion token as one ply", () => {
+    const pgn = singleGamePGN("1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7# 1-0");
+    expect(parseGame(pgn)[0].moveCount).toBe(7);
+  });
+
+  it("does not count the result token as a move", () => {
+    const pgn = singleGamePGN("1. e4 *");
+    expect(parseGame(pgn)[0].moveCount).toBe(1);
   });
 });

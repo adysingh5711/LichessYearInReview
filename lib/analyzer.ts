@@ -198,7 +198,7 @@ export const analyzeGames = (
     }
 
     // Process game lengths: compute once.
-    const gameLength = game.moves ? game.moves.length : 0;
+    const gameLength = game.moveCount ?? 0;
     if (isDecisive && gameLength > 0) {
       if (isWin) {
         gameLengths.wins.sum += gameLength;

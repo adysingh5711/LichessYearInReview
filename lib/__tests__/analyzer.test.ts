@@ -13,7 +13,7 @@ const game = (overrides: Partial<GameStats>): GameStats => ({
   blackElo: "1480",
   whiteRatingDiff: "8",
   blackRatingDiff: "-8",
-  moves: ["e4", "c5", "Nf3"],
+  moveCount: 3,
   ...overrides,
 });
 
@@ -26,7 +26,7 @@ const fixture: GameStats[] = [
     white: "Opponent1",
     black: "TestUser",
     date: new Date(Date.UTC(2024, 0, 20)),
-    moves: ["e4", "e5", "Nf3", "Nc6", "Bb5"],
+    moveCount: 5,
   }),
   // 3. Loss as White — Feb 2024, different opening
   game({
