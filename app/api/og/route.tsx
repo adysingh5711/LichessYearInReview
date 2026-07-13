@@ -1,20 +1,11 @@
 import { ImageResponse } from 'next/og';
 
-export const config = {
-    runtime: 'edge',
-};
+export const runtime = 'edge';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const title = searchParams.get('title') || 'Lichess Review';
     const description = searchParams.get('description') || 'Analyze your chess games and track your progress!';
-
-    // Fetch the landing page content
-    const response = await fetch('https://lichess-review.vercel.app/');
-    const html = await response.text();
-
-    // Here you can parse the HTML to extract any specific data you want to include in the image
-    // For simplicity, we will just render the title and description
 
     return new ImageResponse(
         (

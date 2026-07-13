@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect, ChangeEvent, useMemo, useRef } from "react";
 import { useTheme } from "next-themes";
-import { useRouter } from "next/navigation";
-import { toPng } from 'html-to-image';
 
 // UI components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,36 +9,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { MagicCard } from "@/components/ui/magic-card";
 import { ChartMagicCard } from "@/components/ui/chart-magic-card";
 import { ShareDialog } from "@/components/share-dialog";
-
-// Chart components
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  ComposedChart,
-  Brush,
-  TooltipProps,
-} from "recharts";
+import { OverviewCards } from "@/components/overview-cards";
+import { MonthlyPerformanceChart } from "@/components/charts/monthly-performance-chart";
+import { OpeningsChart } from "@/components/charts/openings-chart";
+import { RatingProgressionChart } from "@/components/charts/rating-progression-chart";
+import { HeadToHeadChart } from "@/components/charts/head-to-head-chart";
 
 // Icons
 import {
-  FileInput,
   Upload,
-  Trophy,
   User,
-  Clock,
-  Swords,
   Moon,
   Sun,
   CalendarRange,
@@ -51,10 +31,6 @@ import {
 
 // Types
 import { AnalysisStats } from "@/types/chess";
-import type {
-  ValueType,
-  NameType,
-} from "recharts/types/component/DefaultTooltipContent";
 
 export function ModeToggle() {
   const { theme, setTheme } = useTheme();
@@ -78,6 +54,7 @@ export function ModeToggle() {
 }
 
 const ChessAnalyzer = () => {
+  const [platform, setPlatform] = useState<"lichess" | "chess.com">("lichess");
   const [username, setUsername] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -86,33 +63,17 @@ const ChessAnalyzer = () => {
   const [selectedGameType, setSelectedGameType] = useState<string>("All");
   const [showShareModal, setShowShareModal] = useState(false);
   const { theme } = useTheme();
-  const router = useRouter();
-  const [startYear, setStartYear] = useState(new Date().getFullYear().toString());
-  const [endYear, setEndYear] = useState(new Date().getFullYear().toString());
+  const currentYear = new Date().getFullYear();
+  const [startMonth, setStartMonth] = useState(`${currentYear}-01`);
+  const [endMonth, setEndMonth] = useState(`${currentYear}-12`);
   const [isFetching, setIsFetching] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const [loadingPercentage, setLoadingPercentage] = useState(0);
 
   // Calculated values
   const totalGames = stats
     ? stats.results.wins + stats.results.losses + stats.results.draws
     : 0;
-
-  const mostPlayedOpening = stats?.openings?.length
-    ? [...stats.openings].sort((a, b) => b.count - a.count)[0]
-    : { name: "N/A", count: 0 };
-
-  const filteredOpponents = stats?.headToHead?.length
-    ? stats.headToHead.filter(o =>
-      !o.opponent?.toLowerCase().includes('lichess ai') &&
-      !o.opponent?.toLowerCase().includes('bot')
-    )
-    : [];
-
-  const bestWinRateMonth = stats?.monthlyPerformance?.length
-    ? [...stats.monthlyPerformance].sort((a, b) => b.winRate - a.winRate)[0]
-    : { month: "N/A", winRate: 0 };
 
   const peakRating = stats?.ratingProgression?.length
     ? Math.max(...stats.ratingProgression.map(r => r.rating))
@@ -158,25 +119,31 @@ const ChessAnalyzer = () => {
       setError("Please provide a username");
       return;
     }
+    if (startMonth > endMonth) {
+      setError("Start month must not be after end month");
+      return;
+    }
 
     setIsFetching(true);
     setError("");
 
     try {
-      const response = await fetch(`/api/fetch-games?username=${username}&startYear=${startYear}&endYear=${endYear}`);
+      const params = new URLSearchParams({ username: username.trim(), platform, start: startMonth, end: endMonth });
+      const response = await fetch(`/api/fetch-games?${params}`);
 
       if (!response.ok) {
         throw new Error(await response.text());
       }
 
       const games = await response.text();
-      const newFile = new File([games], 'lichess_games.pgn', { type: 'application/x-chess-pgn' });
+      const newFile = new File([games], `${platform}_games.pgn`, { type: 'application/x-chess-pgn' });
       setFile(newFile);
 
       // Proceed with analysis
       await handleAnalyze(newFile);
     } catch (err) {
-      setError("Failed to fetch games from Lichess. Please upload your PGN file instead.");
+      const platformName = platform === "lichess" ? "Lichess" : "Chess.com";
+      setError(err instanceof Error && err.message ? err.message : `Failed to fetch games from ${platformName}. Please upload your PGN file instead.`);
     } finally {
       setIsFetching(false);
     }
@@ -190,12 +157,11 @@ const ChessAnalyzer = () => {
 
     const fileToAnalyze = providedFile || file;
     if (!fileToAnalyze) {
-      setError("Please either upload a PGN file or fetch games from Lichess");
+      setError("Please either upload a PGN file or fetch games from Lichess/Chess.com");
       return;
     }
 
     setLoading(true);
-    setLoadingPercentage(0);
 
     try {
       const formData = new FormData();
@@ -209,324 +175,15 @@ const ChessAnalyzer = () => {
 
       if (!response.ok) throw new Error(await response.text());
 
-      // Simulate loading percentage update (replace with actual logic if available)
-      for (let i = 0; i <= 100; i += 10) {
-        setLoadingPercentage(i);
-        await new Promise(resolve => setTimeout(resolve, 100)); // Simulate delay
-      }
-
       setStats(await response.json());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to analyze games");
     } finally {
       setLoading(false);
-      setLoadingPercentage(0);
     }
   };
 
   const handleShare = () => stats && setShowShareModal(true);
-
-  const handleDownload = async () => {
-    const cardElement = document.getElementById('share-card');
-    if (!cardElement) return;
-
-    try {
-      const dataUrl = await toPng(cardElement, {
-        backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
-        pixelRatio: 2,
-        cacheBust: true,
-        filter: (node) => {
-          // Exclude the download button from the image
-          return !(node instanceof HTMLElement && node.id === 'download-button');
-        },
-        style: {
-          transform: 'none', // Disable any transforms
-          contain: 'strict' // Prevent layout shifts
-        }
-      });
-
-      const link = document.createElement('a');
-      link.download = `chess-year-review-${username}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (error) {
-      console.error('Error generating image:', error);
-    }
-  };
-
-  const StatBlock = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div className="space-y-2">
-      <h3 className="text-sm font-semibold text-[hsl(272.49deg_100%_42.99%)] dark:text-[hsl(272.49deg_100%_82.99%)]">{title}</h3>
-      <div className="space-y-1 text-sm">{children}</div>
-    </div>
-  );
-
-  const StatItem = ({ label, value, truncate }: {
-    label: string;
-    value: string | number;
-    truncate?: boolean
-  }) => (
-    <div className="flex justify-between">
-      <span className="text-[hsl(var(--primary))] dark:text-[hsl(var(--primary))] font-medium">{label}:</span>
-      <span className={`font-semibold text-[hsl(272.49deg_100%_42.99%)] dark:text-[hsl(272.49deg_100%_82.99%)] ${truncate ? 'max-w-[120px] truncate' : ''}`}>
-        {value || '-'}
-      </span>
-    </div>
-  );
-
-  // Chart rendering functions
-  const renderWinRateChart = (data: AnalysisStats["monthlyPerformance"]) => (
-    <ResponsiveContainer width="100%" height={300}>
-      <ComposedChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis
-          dataKey="month"
-          tickFormatter={(month) => {
-            const [year, m] = month.split("-");
-            return new Date(parseInt(year), parseInt(m) - 1).toLocaleString(
-              "default",
-              { month: "short" }
-            );
-          }}
-          label={{
-            value: "Months",
-            position: "bottom",
-            dy: -5
-          }}
-        />
-        <YAxis yAxisId="left" domain={[0, 100]} label={{ value: "Win Rate %", angle: -90, position: "bottom", dx: -30, dy: -90 }} />
-        <YAxis yAxisId="right" orientation="right" label={{ value: "Games Played", angle: 90, position: "insideRight", dx: 0, dy: 70 }} />
-        <Tooltip content={<CustomMonthlyTooltip />} />
-        <Legend />
-        <Bar
-          yAxisId="right"
-          dataKey="games"
-          fill="#8884d8"
-          name="Games Played"
-        />
-        <Bar yAxisId="right" dataKey="wins" fill="#82ca9d" name="Wins" />
-        <Line
-          yAxisId="left"
-          dataKey="winRate"
-          stroke="#ff7300"
-          name="Win Rate %"
-        />
-        <Brush
-          dataKey="month"
-          height={30}
-          stroke={theme === "dark" ? "#64748b" : "#8884d8"} // slate-500 in dark, original in light
-          fill={theme === "dark" ? "#1e293b" : "#f1f5f9"} // slate-800 in dark, slate-50 in light
-          traveller={(props) => (
-            <rect
-              {...props}
-              fill={theme === "dark" ? "#64748b" : "#8884d8"} // Handle color
-              stroke={theme === "dark" ? "#94a3b8" : "#cbd5e1"} // Handle border
-            />
-          )}
-          startIndex={Math.max(0, data.length - 11)}
-          endIndex={data.length - 1}
-        />
-      </ComposedChart>
-    </ResponsiveContainer>
-  );
-
-  const CustomMonthlyTooltip = ({
-    active,
-    payload,
-  }: TooltipProps<ValueType, NameType>) => {
-    if (active && payload) {
-      const data = payload[0]?.payload as {
-        month: string;
-        games: number;
-        wins: number;
-        winRate: number;
-      };
-
-      return (
-        <div className="bg-background text-foreground p-3 border rounded-lg shadow">
-          <p className="font-bold">
-            {new Date(data.month).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-            })}
-          </p>
-          <p>Games: {data.games}</p>
-          <p>Wins: {data.wins}</p>
-          <p>Win Rate: {data.winRate.toFixed(1)}%</p>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const renderCustomizedTick = (props: { x: number; y: number; payload: { value: string } }) => {
-    const { x, y, payload } = props;
-    const maxLineLength = 15; // Characters per line
-    const maxLines = 3;
-
-    let label = payload.value;
-    let lines: string[] = [];
-    for (let i = 0; i < maxLines; i++) {
-      const line = label.slice(i * maxLineLength, (i + 1) * maxLineLength);
-      if (line) lines.push(line);
-      else break;
-    }
-
-    const fontSize = Math.max(11, 12 - Math.floor(lines[0]?.length / 3 || 0));
-
-    return (
-      <text
-        x={x}
-        y={y}
-        dy={20}
-        fill="#666"
-        fontSize={fontSize}
-        textAnchor="middle"
-        dominantBaseline="hanging"
-      >
-        {lines.map((line, index) => (
-          <tspan x={x} dy={index === 0 ? 0 : 15} key={index}>
-            {line}
-          </tspan>
-        ))}
-      </text>
-    );
-  };
-
-  const renderOpeningsChart = (data: AnalysisStats["openings"]) => {
-    return (
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={data} style={{
-          color: 'hsl(var(--foreground))',
-          fill: 'hsl(var(--foreground))'
-        }}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis
-            dataKey="name"
-            textAnchor="end"
-            height={55}
-            tick={renderCustomizedTick}
-            interval={0}
-            label={{
-              // value: "Openings",
-              position: "bottom",
-              dy: -25
-            }}
-          />
-          <YAxis
-            yAxisId="left"
-            label={{
-              value: "Games Played",
-              angle: -90,
-              position: "bottom",
-              dx: -30,
-              dy: -90
-            }}
-          />
-          <YAxis
-            yAxisId="right"
-            orientation="right"
-            domain={[0, 100]}
-            label={{ value: "Win Rate %", angle: 90, position: "insideRight", dx: -10, dy: 70 }}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend />
-          <Bar
-            yAxisId="left"
-            dataKey="count"
-            fill="#8884d8"
-            name="Games Played"
-          />
-          <Bar
-            yAxisId="right"
-            dataKey="winRate"
-            fill="#82ca9d"
-            name="Win Rate %"
-          />
-          <Brush
-            dataKey="name"
-            height={30}
-            stroke={theme === "dark" ? "#64748b" : "#8884d8"} // slate-500 in dark, original in light
-            fill={theme === "dark" ? "#1e293b" : "#f1f5f9"} // slate-800 in dark, slate-50 in light
-            traveller={(props) => (
-              <rect
-                {...props}
-                fill={theme === "dark" ? "#64748b" : "#8884d8"} // Handle color
-                stroke={theme === "dark" ? "#94a3b8" : "#cbd5e1"} // Handle border
-              />
-            )}
-            travellerWidth={10}
-            gap={5}
-            startIndex={0}
-            endIndex={Math.min(9, data.length - 1)}
-          />
-        </BarChart>
-      </ResponsiveContainer>
-    );
-  };
-
-  const CustomTooltip = ({
-    active,
-    payload,
-    label,
-  }: TooltipProps<ValueType, NameType>) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload as {
-        wins: number;
-        losses: number;
-        draws: number;
-        name?: string;
-        opponent?: string;
-      };
-
-      return (
-        <div className="bg-background text-foreground p-3 border rounded-lg shadow-lg">
-          <p className="font-bold">{label}</p>
-          {payload.map((entry) => (
-            <p key={entry.name} style={{ color: entry.color }}>
-              {entry.name}: {entry.value}
-            </p>
-          ))}
-          {"wins" in data && (
-            <>
-              <p>Wins: {data.wins}</p>
-              <p>Losses: {data.losses}</p>
-              <p>Draws: {data.draws}</p>
-            </>
-          )}
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const RatingTooltip = ({
-    active,
-    payload,
-  }: TooltipProps<ValueType, NameType>) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload as {
-        date: Date;
-        rating: number;
-        gameType: string;
-      };
-
-      return (
-        <div className="bg-background text-foreground p-3 border rounded-lg shadow-lg">
-          <p className="font-bold">
-            {new Date(data.date).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
-          <p>Rating: {data.rating}</p>
-          <p>Game Type: {data.gameType}</p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   //using useMemo to optimise time function
   const openingsByCount = useMemo(() =>
@@ -541,9 +198,16 @@ const ChessAnalyzer = () => {
     stats?.openings ? [...stats.openings].sort((a, b) => b.winRate - a.winRate) : []
     , [stats]);
 
-  const headToHeadSorted = useMemo(() =>
-    stats?.headToHead ? [...stats.headToHead].sort((a, b) => b.games - a.games) : []
+  const openingsByLosses = useMemo(() =>
+    stats?.openings ? [...stats.openings].sort((a, b) => b.losses - a.losses) : []
     , [stats]);
+
+  const filteredProgression = useMemo(() => {
+    if (!stats) return [];
+    return selectedGameType === "All"
+      ? stats.ratingProgression
+      : stats.ratingProgression.filter(r => r.gameType === selectedGameType);
+  }, [stats, selectedGameType]);
 
   const handleMouseEnter = () => {
     setShowHelp(true);
@@ -630,13 +294,20 @@ const ChessAnalyzer = () => {
           >
             <CardContent>
               <div className="space-y-4 w-full max-w-md mx-auto">
+                <Tabs value={platform} onValueChange={(v) => setPlatform(v as "lichess" | "chess.com")}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="lichess">Lichess</TabsTrigger>
+                    <TabsTrigger value="chess.com">Chess.com</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+
                 <div className="relative group">
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg transition-opacity opacity-0 group-hover:opacity-100"></div>
                   <div className="relative flex gap-2 items-center bg-background/50 backdrop-blur-sm rounded-lg p-2 border">
                     <User className="w-5 h-5 text-purple-600" />
                     <Input
                       type="text"
-                      placeholder="Lichess Username"
+                      placeholder={platform === "lichess" ? "Lichess Username" : "Chess.com Username"}
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       className="border-0 bg-transparent focus-visible:ring-0"
@@ -650,12 +321,10 @@ const ChessAnalyzer = () => {
                     <div className="relative flex gap-2 items-center bg-background/50 backdrop-blur-sm rounded-lg p-2 border">
                       <CalendarRange className="w-5 h-5 text-purple-600" />
                       <Input
-                        type="number"
-                        placeholder="Start Year"
-                        value={startYear}
-                        onChange={(e) => setStartYear(e.target.value)}
-                        min="2010"
-                        max={new Date().getFullYear()}
+                        type="month"
+                        value={startMonth}
+                        onChange={(e) => setStartMonth(e.target.value)}
+                        min="2010-01"
                         className="border-0 bg-transparent focus-visible:ring-0"
                       />
                     </div>
@@ -665,12 +334,10 @@ const ChessAnalyzer = () => {
                     <div className="relative flex gap-2 items-center bg-background/50 backdrop-blur-sm rounded-lg p-2 border">
                       <CalendarRange className="w-5 h-5 text-pink-600" />
                       <Input
-                        type="number"
-                        placeholder="End Year"
-                        value={endYear}
-                        onChange={(e) => setEndYear(e.target.value)}
-                        min="2010"
-                        max={new Date().getFullYear()}
+                        type="month"
+                        value={endMonth}
+                        onChange={(e) => setEndMonth(e.target.value)}
+                        min="2010-01"
                         className="border-0 bg-transparent focus-visible:ring-0"
                       />
                     </div>
@@ -682,11 +349,7 @@ const ChessAnalyzer = () => {
                   onClick={handleFetchGames}
                   disabled={isFetching || loading}
                 >
-                  {(isFetching || loading) && (
-                    <>
-                      {loading ? `${loadingPercentage}% ` : <Loader2 className="w-4 h-4 animate-spin" />}
-                    </>
-                  )}
+                  {(isFetching || loading) && <Loader2 className="w-4 h-4 animate-spin" />}
                   {isFetching ? "Fetching..." : loading ? "Analyzing..." : "Analyze Games"}
                 </Button>
 
@@ -735,7 +398,7 @@ const ChessAnalyzer = () => {
                     <HelpCircle
                       className="w-5 h-5 text-muted-foreground cursor-pointer hover:text-primary transition-colors"
                       onMouseEnter={handleMouseEnter}
-                      onMouseLeave={(e) => {
+                      onMouseLeave={() => {
                         // Start a timer to check if mouse moved to tooltip
                         setTimeout(() => {
                           if (!tooltipRef.current?.matches(':hover')) {
@@ -758,12 +421,21 @@ const ChessAnalyzer = () => {
                       >
                         <p className="text-sm">
                           To get your PGN file:
-                          <ol className="mt-2 ml-4 list-decimal">
-                            <li>Visit <a href="https://lichess.org/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">lichess.org</a></li>
-                            <li>Go to your profile, click the three lines on the top right</li>
-                            <li>Click on &quot;Export games&quot;</li>
-                            <li>Download your games in PGN format</li>
-                          </ol>
+                          {platform === "lichess" ? (
+                            <ol className="mt-2 ml-4 list-decimal">
+                              <li>Visit <a href="https://lichess.org/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">lichess.org</a></li>
+                              <li>Go to your profile, click the three lines on the top right</li>
+                              <li>Click on &quot;Export games&quot;</li>
+                              <li>Download your games in PGN format</li>
+                            </ol>
+                          ) : (
+                            <ol className="mt-2 ml-4 list-decimal">
+                              <li>Visit <a href="https://www.chess.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">chess.com</a></li>
+                              <li>Go to your profile, click &quot;Games&quot; then &quot;Archive&quot;</li>
+                              <li>Click &quot;Download&quot; for the games you want</li>
+                              <li>Save the file in PGN format</li>
+                            </ol>
+                          )}
                         </p>
                       </div>
                     )}
@@ -798,96 +470,7 @@ const ChessAnalyzer = () => {
               </Button>
             </div>
             <TabsContent value="overview">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
-                <MagicCard
-                  className="h-full flex flex-col shadow-2xl p-6"
-                  gradientColor={theme === "dark" ? "#262626" : "#D9D9D955"}
-                >
-                  <h3 className="text-lg font-semibold dark:text-gray-100">Results</h3>
-                  <div className="space-y-2 dark:text-gray-200 mt-2">
-                    <p>Total Games: {totalGames}</p>
-                    <p>Wins: {stats.results.wins}</p>
-                    <p>Losses: {stats.results.losses}</p>
-                    <p>Draws: {stats.results.draws}</p>
-                  </div>
-                </MagicCard>
-
-                <MagicCard
-                  className="h-full flex flex-col shadow-2xl p-6"
-                  gradientColor={theme === "dark" ? "#262626" : "#D9D9D955"}
-                >
-                  <h3 className="text-lg font-semibold dark:text-gray-100">Game Types</h3>
-                  <div className="space-y-2 dark:text-gray-200 mt-2">
-                    {Object.entries(stats.gameTypes).map(([type, count]) => (
-                      <p key={type}>{type}: {count} games</p>
-                    ))}
-                  </div>
-                </MagicCard>
-
-                <MagicCard
-                  className="h-full flex flex-col shadow-2xl p-6"
-                  gradientColor={theme === "dark" ? "#262626" : "#D9D9D955"}
-                >
-                  <h3 className="text-lg font-semibold dark:text-gray-100">Streaks</h3>
-                  <div className="space-y-2 dark:text-gray-200 mt-2">
-                    <p>Longest Win Streak: {stats.streaks.winStreak}</p>
-                    <p>Longest Loss Streak: {stats.streaks.lossStreak}</p>
-                    <p>Longest Draw Streak: {stats.streaks.drawStreak}</p>
-                  </div>
-                </MagicCard>
-
-                <MagicCard
-                  className="h-full flex flex-col shadow-2xl p-6"
-                  gradientColor={theme === "dark" ? "#262626" : "#D9D9D955"}
-                >
-                  <h3 className="text-lg font-semibold dark:text-gray-100">Color Statistics</h3>
-                  <div className="space-y-2 dark:text-gray-200 mt-2">
-                    <div>
-                      <p className="font-medium">White:</p>
-                      <p>Wins: {stats.colorStats.White.wins}</p>
-                      <p>Losses: {stats.colorStats.White.losses}</p>
-                      <p>Draws: {stats.colorStats.White.draws}</p>
-                    </div>
-                    <div>
-                      <p className="font-medium">Black:</p>
-                      <p>Wins: {stats.colorStats.Black.wins}</p>
-                      <p>Losses: {stats.colorStats.Black.losses}</p>
-                      <p>Draws: {stats.colorStats.Black.draws}</p>
-                    </div>
-                  </div>
-                </MagicCard>
-
-                <MagicCard
-                  className="h-full flex flex-col shadow-2xl p-6"
-                  gradientColor={theme === "dark" ? "#262626" : "#D9D9D955"}
-                >
-                  <h3 className="text-lg font-semibold dark:text-gray-100">
-                    Result Distribution by Game Length
-                  </h3>
-                  <div className="dark:text-gray-200 mt-2">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <h3 className="font-medium">Wins</h3>
-                        <p>Average: {stats.resultDistribution.wins.average.toFixed(1)} moves</p>
-                        <p>Shortest: {stats.resultDistribution.wins.shortest}</p>
-                        <p>Longest: {stats.resultDistribution.wins.longest}</p>
-                      </div>
-                      <div className="space-y-2">
-                        <h3 className="font-medium">Losses</h3>
-                        <p>Average: {stats.resultDistribution.losses.average.toFixed(1)} moves</p>
-                        <p>Shortest: {stats.resultDistribution.losses.shortest}</p>
-                        <p>Longest: {stats.resultDistribution.losses.longest}</p>
-                      </div>
-                      <div className="space-y-2">
-                        <h3 className="font-medium">Draws</h3>
-                        <p>Average: {stats.resultDistribution.draws.average.toFixed(1)} moves</p>
-                        <p>Shortest: {stats.resultDistribution.draws.shortest}</p>
-                        <p>Longest: {stats.resultDistribution.draws.longest}</p>
-                      </div>
-                    </div>
-                  </div>
-                </MagicCard>
-              </div>
+              <OverviewCards stats={stats} totalGames={totalGames} theme={theme} />
             </TabsContent>
             <TabsContent value="openings">
               <ChartMagicCard
@@ -912,26 +495,22 @@ const ChessAnalyzer = () => {
 
                     <TabsContent value="mostPlayed">
                       <div className="h-[300px]">
-                        {renderOpeningsChart(openingsByCount)}
+                        <OpeningsChart data={openingsByCount} theme={theme} />
                       </div>
                     </TabsContent>
                     <TabsContent value="mostWins">
                       <div className="h-[300px]">
-                        {renderOpeningsChart(openingsByWins)}
+                        <OpeningsChart data={openingsByWins} theme={theme} />
                       </div>
                     </TabsContent>
                     <TabsContent value="bestRate">
                       <div className="h-[300px]">
-                        {renderOpeningsChart(openingsByWinRate)}
+                        <OpeningsChart data={openingsByWinRate} theme={theme} />
                       </div>
                     </TabsContent>
                     <TabsContent value="mostLosses">
                       <div className="h-[300px]">
-                        {renderOpeningsChart(
-                          [...stats.openings].sort(
-                            (a, b) => b.losses - a.losses
-                          )
-                        )}
+                        <OpeningsChart data={openingsByLosses} theme={theme} />
                       </div>
                     </TabsContent>
                   </Tabs>
@@ -963,101 +542,7 @@ const ChessAnalyzer = () => {
                 </CardHeader>
                 <CardContent className="overflow-visible">
                   <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={
-                          selectedGameType === "All"
-                            ? stats.ratingProgression
-                            : stats.ratingProgression.filter(
-                              (r) => r.gameType === selectedGameType
-                            )
-                        }
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis
-                          dataKey="date"
-                          tickFormatter={(date) =>
-                            new Date(date).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })
-                          }
-                          label={{
-                            value: "Months",
-                            position: "bottom",
-                            dy: -5
-                          }}
-                        />
-                        <YAxis domain={["dataMin - 50", "dataMax + 50"]} label={{
-                          value: "Ratings",
-                          angle: -90,
-                          position: "bottom",
-                          dx: -35,
-                          dy: -90
-                        }} />
-                        <Tooltip
-                          content={({ active, payload }) => {
-                            if (active && payload && payload.length) {
-                              const data = payload[0].payload;
-                              return (
-                                <div className="bg-background text-foreground p-3 border rounded-lg shadow-lg">
-                                  <p className="font-bold">
-                                    {new Date(data.date).toLocaleDateString(
-                                      "en-US",
-                                      {
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric",
-                                      }
-                                    )}
-                                  </p>
-                                  <p>Rating: {data.rating}</p>
-                                  <p>Game Type: {data.gameType}</p>
-                                </div>
-                              );
-                            }
-                            return null;
-                          }}
-                        />
-                        <Legend />
-                        <Line
-                          type="monotone"
-                          dataKey="rating"
-                          stroke="#8884d8"
-                          strokeWidth={2}
-                          dot={false}
-                          name="Rating"
-                        />
-                        <Brush
-                          dataKey="date"
-                          height={30}
-                          stroke={theme === "dark" ? "#64748b" : "#8884d8"} // slate-500 in dark, original in light
-                          fill={theme === "dark" ? "#1e293b" : "#f1f5f9"} // slate-800 in dark, slate-50 in light
-                          traveller={(props) => (
-                            <rect
-                              {...props}
-                              fill={theme === "dark" ? "#64748b" : "#8884d8"} // Handle color
-                              stroke={theme === "dark" ? "#94a3b8" : "#cbd5e1"} // Handle border
-                            />
-                          )}
-                          startIndex={Math.max(
-                            0,
-                            (selectedGameType === "All"
-                              ? stats.ratingProgression.length
-                              : stats.ratingProgression.filter(
-                                (r) => r.gameType === selectedGameType
-                              ).length) - 366
-                          )}
-                          endIndex={
-                            (selectedGameType === "All"
-                              ? stats.ratingProgression.length
-                              : stats.ratingProgression.filter(
-                                (r) => r.gameType === selectedGameType
-                              ).length) - 1
-                          }
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    <RatingProgressionChart data={filteredProgression} theme={theme} />
                   </div>
                 </CardContent>
               </ChartMagicCard>
@@ -1073,7 +558,7 @@ const ChessAnalyzer = () => {
                 </CardHeader>
                 <CardContent className="overflow-visible">
                   <div className="h-[300px]">
-                    {renderWinRateChart(stats.monthlyPerformance)}
+                    <MonthlyPerformanceChart data={stats.monthlyPerformance} theme={theme} />
                   </div>
                 </CardContent>
               </ChartMagicCard>
@@ -1089,62 +574,7 @@ const ChessAnalyzer = () => {
                 </CardHeader>
                 <CardContent className="overflow-visible">
                   <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={stats.headToHead} style={{
-                        color: 'hsl(var(--foreground))',
-                        fill: 'hsl(var(--foreground))'
-                      }}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis
-                          dataKey="opponent"
-                          height={50}
-                          tick={renderCustomizedTick}
-                          interval={0}
-                        />
-                        <YAxis yAxisId="left" label={{
-                          value: "Games Played",
-                          angle: -90,
-                          position: "bottom",
-                          dx: -30,
-                          dy: -90
-                        }} />
-                        <YAxis
-                          yAxisId="right"
-                          orientation="right"
-                          domain={[0, 100]}
-                          label={{ value: "Win Rate %", angle: 90, position: "insideRight", dx: -10, dy: 70 }}
-                        />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Legend />
-                        <Bar
-                          yAxisId="left"
-                          dataKey="games"
-                          fill="#8884d8"
-                          name="Total Games"
-                        />
-                        <Bar
-                          yAxisId="right"
-                          dataKey="winRate"
-                          fill="#82ca9d"
-                          name="Win Rate %"
-                        />
-                        <Brush
-                          dataKey="opponent"
-                          height={30}
-                          stroke={theme === "dark" ? "#64748b" : "#8884d8"} // slate-500 in dark, original in light
-                          fill={theme === "dark" ? "#1e293b" : "#f1f5f9"} // slate-800 in dark, slate-50 in light
-                          traveller={(props) => (
-                            <rect
-                              {...props}
-                              fill={theme === "dark" ? "#64748b" : "#8884d8"} // Handle color
-                              stroke={theme === "dark" ? "#94a3b8" : "#cbd5e1"} // Handle border
-                            />
-                          )}
-                          startIndex={0}
-                          endIndex={10}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <HeadToHeadChart data={stats.headToHead} theme={theme} />
                   </div>
                 </CardContent>
               </ChartMagicCard>

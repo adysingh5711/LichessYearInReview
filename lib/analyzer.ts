@@ -1,5 +1,5 @@
 import { GameStats, AnalysisStats } from "@/types/chess";
-import { categorizeTimeControl, parsePGNDate } from "./pgn-parser";
+import { categorizeTimeControl } from "./pgn-parser";
 
 export const analyzeGames = (
   games: GameStats[],
@@ -50,24 +50,27 @@ export const analyzeGames = (
     { count: number; wins: number; losses: number; draws: number }
   > = {};
   const peakRatings: Record<string, number> = {};
+  const normalizedUsername = username.trim().toLowerCase();
 
   // Process each game using a for-of loop.
   for (const game of games) {
     // Skip processing for matchups if opponent is Anonymous
-    const opponent = game.white === username ? game.black : game.white;
+    const opponent = game.white.toLowerCase() === normalizedUsername ? game.black : game.white;
     const isValidOpponent = opponent !== 'Anonymous';
 
     // Categorize game by time control.
     const timeControl = categorizeTimeControl(game.timeControl);
     stats.gameTypes[timeControl] = (stats.gameTypes[timeControl] || 0) + 1;
 
-    const isWhite = game.white === username;
+    const isWhite = game.white.toLowerCase() === normalizedUsername;
     let isWin = false;
     let isDraw = false;
+    let isDecisive = false; // true only for 1-0, 0-1, 1/2-1/2
 
     // Process game result using a switch to consolidate similar logic.
     switch (game.result) {
       case "1-0":
+        isDecisive = true;
         if (isWhite) {
           stats.results.wins++;
           stats.colorStats.White.wins++;
@@ -82,6 +85,7 @@ export const analyzeGames = (
         }
         break;
       case "0-1":
+        isDecisive = true;
         if (!isWhite) {
           stats.results.wins++;
           stats.colorStats.Black.wins++;
@@ -96,6 +100,7 @@ export const analyzeGames = (
         }
         break;
       case "1/2-1/2":
+        isDecisive = true;
         stats.results.draws++;
         if (isWhite) {
           stats.colorStats.White.draws++;
@@ -105,6 +110,10 @@ export const analyzeGames = (
         currentDrawStreak++;
         currentWinStreak = currentLossStreak = 0;
         isDraw = true;
+        break;
+      default:
+        // Aborted/unfinished ("*"): breaks any running streak, excluded from tallies.
+        currentWinStreak = currentLossStreak = currentDrawStreak = 0;
         break;
     }
     // Update max streaks.
@@ -120,26 +129,26 @@ export const analyzeGames = (
         monthlyStats[month] = { games: 0, wins: 0, ratingChange: 0 };
       }
       monthlyStats[month].games++;
-      if (isWin) {
-        monthlyStats[month].wins++;
-        // Compute rating difference once.
-        const ratingDiff = isWhite
-          ? parseInt(game.whiteRatingDiff || "0", 10)
-          : parseInt(game.blackRatingDiff || "0", 10);
-        monthlyStats[month].ratingChange += ratingDiff;
-      }
+      if (isWin) monthlyStats[month].wins++;
+      // Compute rating difference once (every game changes rating, not just wins).
+      const ratingDiff = isWhite
+        ? parseInt(game.whiteRatingDiff || "0", 10)
+        : parseInt(game.blackRatingDiff || "0", 10);
+      if (Number.isFinite(ratingDiff)) monthlyStats[month].ratingChange += ratingDiff;
       // Record rating progression.
       const rating = isWhite
         ? parseInt(game.whiteElo || "0", 10)
         : parseInt(game.blackElo || "0", 10);
-      stats.ratingProgression.push({
-        date: gameDate,
-        rating,
-        gameType: timeControl,
-      });
-      // Update peak rating for this time control.
-      if (!peakRatings[timeControl] || rating > peakRatings[timeControl]) {
-        peakRatings[timeControl] = rating;
+      if (Number.isFinite(rating)) {
+        stats.ratingProgression.push({
+          date: gameDate,
+          rating,
+          gameType: timeControl,
+        });
+        // Update peak rating for this time control.
+        if (!peakRatings[timeControl] || rating > peakRatings[timeControl]) {
+          peakRatings[timeControl] = rating;
+        }
       }
     }
 
@@ -150,13 +159,16 @@ export const analyzeGames = (
     }
     openingStats[opening].count++;
 
-    // Update opening results based on game outcome
-    if (isWin) {
-      openingStats[opening].wins++;
-    } else if (isDraw) {
-      openingStats[opening].draws++;
-    } else {
-      openingStats[opening].losses++;
+    // Update opening results based on game outcome (aborted games count toward
+    // the opening's total but not toward wins/losses/draws).
+    if (isDecisive) {
+      if (isWin) {
+        openingStats[opening].wins++;
+      } else if (isDraw) {
+        openingStats[opening].draws++;
+      } else {
+        openingStats[opening].losses++;
+      }
     }
 
     // Only process head-to-head stats for non-Anonymous opponents
@@ -170,12 +182,14 @@ export const analyzeGames = (
         };
       }
 
-      if (isWin) {
-        headToHeadStats[opponent].wins++;
-      } else if (isDraw) {
-        headToHeadStats[opponent].draws++;
-      } else {
-        headToHeadStats[opponent].losses++;
+      if (isDecisive) {
+        if (isWin) {
+          headToHeadStats[opponent].wins++;
+        } else if (isDraw) {
+          headToHeadStats[opponent].draws++;
+        } else {
+          headToHeadStats[opponent].losses++;
+        }
       }
       // Update last played date if more recent
       if (game.date && game.date > headToHeadStats[opponent].lastPlayed) {
@@ -184,8 +198,8 @@ export const analyzeGames = (
     }
 
     // Process game lengths: compute once.
-    const gameLength = game.moves ? game.moves.length : 0;
-    if (gameLength > 0) {
+    const gameLength = game.moveCount ?? 0;
+    if (isDecisive && gameLength > 0) {
       if (isWin) {
         gameLengths.wins.sum += gameLength;
         gameLengths.wins.count++;

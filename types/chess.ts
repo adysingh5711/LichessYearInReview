@@ -9,7 +9,7 @@ export interface GameStats {
   blackElo?: string;
   whiteRatingDiff?: string;
   blackRatingDiff?: string;
-  moves: string[];
+  moveCount: number;
 }
 
 export interface AnalysisStats {

@@ -24,16 +24,16 @@ interface ShareDialogProps {
     username: string;
 }
 
-interface StatBlockProps {
+type StatBlockProps = {
     title: string;
     children: React.ReactNode;
-}
+};
 
-interface StatItemProps {
+type StatItemProps = {
     label: string;
     value: string | number;
     truncate?: boolean;
-}
+};
 
 function StatBlock({ title, children }: StatBlockProps) {
     return (
@@ -41,7 +41,7 @@ function StatBlock({ title, children }: StatBlockProps) {
             <h3 className="text-sm font-semibold text-[hsl(var(--primary))]">{title}</h3>
             {children}
         </div>
-    )
+    );
 }
 
 function StatItem({ label, value, truncate }: StatItemProps) {
