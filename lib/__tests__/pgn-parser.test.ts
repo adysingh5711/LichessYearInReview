@@ -12,6 +12,8 @@ describe("categorizeTimeControl", () => {
     ["unlimited", "Classical"],
     ["", "Classical"],
     ["-", "Classical"],
+    ["1/86400", "Daily"],
+    ["1/172800", "Daily"],
   ])("categorizes %s as %s", (input, expected) => {
     expect(categorizeTimeControl(input)).toBe(expected);
   });
@@ -92,6 +94,47 @@ describe("parseGame", () => {
 
   it("returns an empty array for garbage input", () => {
     expect(parseGame("not a pgn")).toEqual([]);
+  });
+});
+
+const CHESSCOM_PGN = `[Event "Live Chess"]
+[White "alice"]
+[Black "bob"]
+[Result "1-0"]
+[Date "2024.05.10"]
+[TimeControl "600"]
+[ECO "B20"]
+[ECOUrl "https://www.chess.com/openings/Sicilian-Defense-Closed-2.Nc3"]
+[WhiteElo "1600"]
+[BlackElo "1580"]
+
+1. e4 c5 2. Nf3 1-0`;
+
+const CHESSCOM_DAILY_PGN = `[Event "Live Chess"]
+[White "alice"]
+[Black "bob"]
+[Result "1-0"]
+[Date "2024.05.10"]
+[TimeControl "1/86400"]
+[ECO "B20"]
+
+1. e4 c5 1-0`;
+
+describe("parseGame with chess.com PGN", () => {
+  it("derives the opening name from ECOUrl when [Opening] is absent", () => {
+    const games = parseGame(CHESSCOM_PGN);
+    expect(games[0].opening).toBe("Sicilian Defense Closed (B20)");
+  });
+
+  it("categorizes a chess.com daily TimeControl correctly", () => {
+    const games = parseGame(CHESSCOM_DAILY_PGN);
+    expect(categorizeTimeControl(games[0].timeControl)).toBe("Daily");
+  });
+
+  it("defaults rating diffs to 0 when absent (chess.com has no RatingDiff headers)", () => {
+    const games = parseGame(CHESSCOM_PGN);
+    expect(games[0].whiteRatingDiff).toBe("0");
+    expect(games[0].blackRatingDiff).toBe("0");
   });
 });
 

@@ -54,6 +54,7 @@ export function ModeToggle() {
 }
 
 const ChessAnalyzer = () => {
+  const [platform, setPlatform] = useState<"lichess" | "chess.com">("lichess");
   const [username, setUsername] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -62,8 +63,9 @@ const ChessAnalyzer = () => {
   const [selectedGameType, setSelectedGameType] = useState<string>("All");
   const [showShareModal, setShowShareModal] = useState(false);
   const { theme } = useTheme();
-  const [startYear, setStartYear] = useState(new Date().getFullYear().toString());
-  const [endYear, setEndYear] = useState(new Date().getFullYear().toString());
+  const currentYear = new Date().getFullYear();
+  const [startMonth, setStartMonth] = useState(`${currentYear}-01`);
+  const [endMonth, setEndMonth] = useState(`${currentYear}-12`);
   const [isFetching, setIsFetching] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -117,12 +119,16 @@ const ChessAnalyzer = () => {
       setError("Please provide a username");
       return;
     }
+    if (startMonth > endMonth) {
+      setError("Start month must not be after end month");
+      return;
+    }
 
     setIsFetching(true);
     setError("");
 
     try {
-      const params = new URLSearchParams({ username: username.trim(), startYear, endYear });
+      const params = new URLSearchParams({ username: username.trim(), platform, start: startMonth, end: endMonth });
       const response = await fetch(`/api/fetch-games?${params}`);
 
       if (!response.ok) {
@@ -130,13 +136,14 @@ const ChessAnalyzer = () => {
       }
 
       const games = await response.text();
-      const newFile = new File([games], 'lichess_games.pgn', { type: 'application/x-chess-pgn' });
+      const newFile = new File([games], `${platform}_games.pgn`, { type: 'application/x-chess-pgn' });
       setFile(newFile);
 
       // Proceed with analysis
       await handleAnalyze(newFile);
     } catch (err) {
-      setError(err instanceof Error && err.message ? err.message : "Failed to fetch games from Lichess. Please upload your PGN file instead.");
+      const platformName = platform === "lichess" ? "Lichess" : "Chess.com";
+      setError(err instanceof Error && err.message ? err.message : `Failed to fetch games from ${platformName}. Please upload your PGN file instead.`);
     } finally {
       setIsFetching(false);
     }
@@ -150,7 +157,7 @@ const ChessAnalyzer = () => {
 
     const fileToAnalyze = providedFile || file;
     if (!fileToAnalyze) {
-      setError("Please either upload a PGN file or fetch games from Lichess");
+      setError("Please either upload a PGN file or fetch games from Lichess/Chess.com");
       return;
     }
 
@@ -287,13 +294,20 @@ const ChessAnalyzer = () => {
           >
             <CardContent>
               <div className="space-y-4 w-full max-w-md mx-auto">
+                <Tabs value={platform} onValueChange={(v) => setPlatform(v as "lichess" | "chess.com")}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="lichess">Lichess</TabsTrigger>
+                    <TabsTrigger value="chess.com">Chess.com</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+
                 <div className="relative group">
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg transition-opacity opacity-0 group-hover:opacity-100"></div>
                   <div className="relative flex gap-2 items-center bg-background/50 backdrop-blur-sm rounded-lg p-2 border">
                     <User className="w-5 h-5 text-purple-600" />
                     <Input
                       type="text"
-                      placeholder="Lichess Username"
+                      placeholder={platform === "lichess" ? "Lichess Username" : "Chess.com Username"}
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       className="border-0 bg-transparent focus-visible:ring-0"
@@ -307,12 +321,10 @@ const ChessAnalyzer = () => {
                     <div className="relative flex gap-2 items-center bg-background/50 backdrop-blur-sm rounded-lg p-2 border">
                       <CalendarRange className="w-5 h-5 text-purple-600" />
                       <Input
-                        type="number"
-                        placeholder="Start Year"
-                        value={startYear}
-                        onChange={(e) => setStartYear(e.target.value)}
-                        min="2010"
-                        max={new Date().getFullYear()}
+                        type="month"
+                        value={startMonth}
+                        onChange={(e) => setStartMonth(e.target.value)}
+                        min="2010-01"
                         className="border-0 bg-transparent focus-visible:ring-0"
                       />
                     </div>
@@ -322,12 +334,10 @@ const ChessAnalyzer = () => {
                     <div className="relative flex gap-2 items-center bg-background/50 backdrop-blur-sm rounded-lg p-2 border">
                       <CalendarRange className="w-5 h-5 text-pink-600" />
                       <Input
-                        type="number"
-                        placeholder="End Year"
-                        value={endYear}
-                        onChange={(e) => setEndYear(e.target.value)}
-                        min="2010"
-                        max={new Date().getFullYear()}
+                        type="month"
+                        value={endMonth}
+                        onChange={(e) => setEndMonth(e.target.value)}
+                        min="2010-01"
                         className="border-0 bg-transparent focus-visible:ring-0"
                       />
                     </div>
@@ -411,12 +421,21 @@ const ChessAnalyzer = () => {
                       >
                         <p className="text-sm">
                           To get your PGN file:
-                          <ol className="mt-2 ml-4 list-decimal">
-                            <li>Visit <a href="https://lichess.org/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">lichess.org</a></li>
-                            <li>Go to your profile, click the three lines on the top right</li>
-                            <li>Click on &quot;Export games&quot;</li>
-                            <li>Download your games in PGN format</li>
-                          </ol>
+                          {platform === "lichess" ? (
+                            <ol className="mt-2 ml-4 list-decimal">
+                              <li>Visit <a href="https://lichess.org/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">lichess.org</a></li>
+                              <li>Go to your profile, click the three lines on the top right</li>
+                              <li>Click on &quot;Export games&quot;</li>
+                              <li>Download your games in PGN format</li>
+                            </ol>
+                          ) : (
+                            <ol className="mt-2 ml-4 list-decimal">
+                              <li>Visit <a href="https://www.chess.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">chess.com</a></li>
+                              <li>Go to your profile, click &quot;Games&quot; then &quot;Archive&quot;</li>
+                              <li>Click &quot;Download&quot; for the games you want</li>
+                              <li>Save the file in PGN format</li>
+                            </ol>
+                          )}
                         </p>
                       </div>
                     )}

@@ -2,6 +2,8 @@ import { GameStats } from "@/types/chess";
 
 export const categorizeTimeControl = (timeControl: string): string => {
   if (!timeControl || timeControl === "unlimited") return "Classical";
+  // Chess.com daily games use "seconds-per-move/total-seconds" (e.g. "1/86400"), not "base+increment".
+  if (timeControl.includes("/")) return "Daily";
 
   try {
     const parts = timeControl.split("+");
@@ -47,6 +49,15 @@ const countPlies = (movetext: string): number => {
   return trimmed ? trimmed.split(/\s+/).length : 0;
 };
 
+// Chess.com PGN has no [Opening] header, only an [ECOUrl] like
+// ".../openings/Sicilian-Defense-Closed-2.Nc3" — derive a readable name from its slug.
+const openingNameFromECOUrl = (ecoUrl: string | undefined): string | null => {
+  if (!ecoUrl) return null;
+  const slug = ecoUrl.split('/').pop();
+  if (!slug) return null;
+  return slug.replace(/-\d.*$/, "").replace(/-/g, " ").trim() || null;
+};
+
 export const parseGame = (pgnText: string): GameStats[] => {
   const games: GameStats[] = [];
 
@@ -78,7 +89,7 @@ export const parseGame = (pgnText: string): GameStats[] => {
         result: headers.Result,
         white: headers.White,
         black: headers.Black,
-        opening: headers.Opening || headers.ECO ? `${headers.Opening || 'Unknown'} (${headers.ECO || '?'})` : "Unknown Opening",
+        opening: headers.Opening || headers.ECOUrl || headers.ECO ? `${headers.Opening || openingNameFromECOUrl(headers.ECOUrl) || 'Unknown'} (${headers.ECO || '?'})` : "Unknown Opening",
         date: headers.Date ? parsePGNDate(headers.Date) : new Date(),
         whiteElo: headers.WhiteElo || "0",
         blackElo: headers.BlackElo || "0",

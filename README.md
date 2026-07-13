@@ -7,11 +7,13 @@ head-to-head stats against your opponents. Live at
 
 ## Using the site
 
-Enter a Lichess username and a year range, then click **Analyze Games** — the
-app fetches your games directly from Lichess. If you'd rather not fetch
-live, upload a PGN exported from
+Pick Lichess or Chess.com, enter your username and a month range, then click
+**Analyze Games** — the app fetches your games directly from the platform.
+For Chess.com, months outside the range the API actually has games for
+(including any future months) are skipped automatically rather than erroring.
+If you'd rather not fetch live, upload a PGN exported from
 [`https://lichess.org/@/<username>/download`](https://lichess.org/@/username/download)
-instead.
+(Lichess) or your Chess.com game archive instead.
 
 Once analyzed, your stats are shown across five tabs: **Overview**,
 **Openings**, **Rating** progression, monthly **Performance**, and
@@ -42,12 +44,14 @@ pnpm build
 
 ## How it works
 
-- `lib/pgn-parser.ts` parses PGN text (from an upload or the Lichess proxy)
-  into per-game records.
+- `lib/pgn-parser.ts` parses PGN text (from an upload or either platform's
+  proxy) into per-game records.
 - `lib/analyzer.ts` aggregates those records into the stats shown in the UI.
-- `app/api/fetch-games/route.ts` proxies the Lichess games API for a
-  username/year-range query; `app/api/analyze/route.ts` runs the same
-  analysis over an uploaded PGN file.
+- `app/api/fetch-games/route.ts` proxies the Lichess or Chess.com games API
+  for a username/month-range query — for Chess.com it first fetches the
+  user's `/games/archives` list and only requests months that intersect the
+  requested range; `app/api/analyze/route.ts` runs the same analysis over an
+  uploaded PGN file regardless of source.
 
 ## Roadmap
 
