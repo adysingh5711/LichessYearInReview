@@ -14,7 +14,7 @@ export const categorizeTimeControl = (timeControl: string): string => {
     if (baseTime <= 480) return "Blitz";
     if (baseTime <= 1500) return "Rapid";
     return "Classical";
-  } catch (error) {
+  } catch (_error) {
     return "Classical";
   }
 };
