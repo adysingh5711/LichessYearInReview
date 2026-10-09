@@ -158,11 +158,6 @@ describe("analyzeGames", () => {
     expect(stats.resultDistribution.wins.average).toBeCloseTo(11 / 3);
   });
 
-  it("computes peakRatings per time control", () => {
-    const stats = analyzeGames(fixture, "TestUser");
-    expect(stats.peakRatings).toEqual({ Blitz: 1500 });
-  });
-
   it("returns a zeroed structure with no NaN/Infinity for empty input", () => {
     const stats = analyzeGames([], "TestUser");
     expect(stats.results).toEqual({ wins: 0, losses: 0, draws: 0 });

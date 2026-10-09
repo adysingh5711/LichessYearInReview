@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChartMagicCard } from "@/components/ui/chart-magic-card";
+import { MagicCard } from "@/components/ui/magic-card";
 import { ShareDialog } from "@/components/share-dialog";
 import { OverviewCards } from "@/components/overview-cards";
 import { MonthlyPerformanceChart } from "@/components/charts/monthly-performance-chart";
@@ -31,6 +31,8 @@ import {
 
 // Types
 import { AnalysisStats } from "@/types/chess";
+import { parseGame } from "@/lib/pgn-parser";
+import { analyzeGames } from "@/lib/analyzer";
 
 export function ModeToggle() {
   const { theme, setTheme } = useTheme();
@@ -164,18 +166,10 @@ const ChessAnalyzer = () => {
     setLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append("file", fileToAnalyze);
-      formData.append("username", username);
-
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error(await response.text());
-
-      setStats(await response.json());
+      // Runs in the browser: ~100ms for 10k games, and avoids re-uploading the PGN to a server.
+      const games = parseGame(await fileToAnalyze.text());
+      if (games.length === 0) throw new Error("No valid games found in PGN file");
+      setStats(analyzeGames(games, username));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to analyze games");
     } finally {
@@ -185,10 +179,7 @@ const ChessAnalyzer = () => {
 
   const handleShare = () => stats && setShowShareModal(true);
 
-  //using useMemo to optimise time function
-  const openingsByCount = useMemo(() =>
-    stats?.openings ? [...stats.openings].sort((a, b) => b.count - a.count) : []
-    , [stats]);
+  const openingsByCount = stats?.openings ?? []; // analyzeGames already sorts by count
 
   const openingsByWins = useMemo(() =>
     stats?.openings ? [...stats.openings].sort((a, b) => b.wins - a.wins) : []
@@ -288,9 +279,8 @@ const ChessAnalyzer = () => {
               </h1>
             </div>
           </CardHeader>
-          <ChartMagicCard
+          <MagicCard
             className="p-6 shadow-2xl"
-            gradientColor={theme === "dark" ? "#262626" : "#f3f4f6"}
           >
             <CardContent>
               <div className="space-y-4 w-full max-w-md mx-auto">
@@ -449,7 +439,7 @@ const ChessAnalyzer = () => {
                 )}
               </div>
             </CardContent>
-          </ChartMagicCard>
+          </MagicCard>
         </Card>
 
         {stats && (
@@ -470,12 +460,11 @@ const ChessAnalyzer = () => {
               </Button>
             </div>
             <TabsContent value="overview">
-              <OverviewCards stats={stats} totalGames={totalGames} theme={theme} />
+              <OverviewCards stats={stats} totalGames={totalGames} />
             </TabsContent>
             <TabsContent value="openings">
-              <ChartMagicCard
+              <MagicCard
                 className="p-6 shadow-2xl"
-                gradientColor={theme === "dark" ? "#262626" : "#f3f4f6"}
               >
                 <CardHeader>
                   <CardTitle>Opening Statistics</CardTitle>
@@ -515,13 +504,12 @@ const ChessAnalyzer = () => {
                     </TabsContent>
                   </Tabs>
                 </CardContent>
-              </ChartMagicCard>
+              </MagicCard>
             </TabsContent>
 
             <TabsContent value="progression">
-              <ChartMagicCard
+              <MagicCard
                 className="p-6 shadow-2xl"
-                gradientColor={theme === "dark" ? "#262626" : "#f3f4f6"}
               >
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -545,13 +533,12 @@ const ChessAnalyzer = () => {
                     <RatingProgressionChart data={filteredProgression} theme={theme} />
                   </div>
                 </CardContent>
-              </ChartMagicCard>
+              </MagicCard>
             </TabsContent>
 
             <TabsContent value="performance">
-              <ChartMagicCard
+              <MagicCard
                 className="p-6 shadow-2xl"
-                gradientColor={theme === "dark" ? "#262626" : "#f3f4f6"}
               >
                 <CardHeader>
                   <CardTitle>Monthly Performance</CardTitle>
@@ -561,13 +548,12 @@ const ChessAnalyzer = () => {
                     <MonthlyPerformanceChart data={stats.monthlyPerformance} theme={theme} />
                   </div>
                 </CardContent>
-              </ChartMagicCard>
+              </MagicCard>
             </TabsContent>
 
             <TabsContent value="headToHead">
-              <ChartMagicCard
+              <MagicCard
                 className="p-6 shadow-2xl"
-                gradientColor={theme === "dark" ? "#262626" : "#f3f4f6"}
               >
                 <CardHeader>
                   <CardTitle>Top Opponent Matchups</CardTitle>
@@ -577,7 +563,7 @@ const ChessAnalyzer = () => {
                     <HeadToHeadChart data={stats.headToHead} theme={theme} />
                   </div>
                 </CardContent>
-              </ChartMagicCard>
+              </MagicCard>
             </TabsContent>
           </Tabs>
         )}

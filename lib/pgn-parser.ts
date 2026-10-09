@@ -5,18 +5,12 @@ export const categorizeTimeControl = (timeControl: string): string => {
   // Chess.com daily games use "seconds-per-move/total-seconds" (e.g. "1/86400"), not "base+increment".
   if (timeControl.includes("/")) return "Daily";
 
-  try {
-    const parts = timeControl.split("+");
-    const baseTime = parseInt(parts[0], 10);
-    if (isNaN(baseTime)) return "Classical";
-
-    if (baseTime < 180) return "Bullet";
-    if (baseTime <= 480) return "Blitz";
-    if (baseTime <= 1500) return "Rapid";
-    return "Classical";
-  } catch (_error) {
-    return "Classical";
-  }
+  const baseTime = parseInt(timeControl, 10); // parses the "base" of "base+increment"
+  if (isNaN(baseTime)) return "Classical";
+  if (baseTime < 180) return "Bullet";
+  if (baseTime <= 480) return "Blitz";
+  if (baseTime <= 1500) return "Rapid";
+  return "Classical";
 };
 
 export function parsePGNDate(dateStr: string): Date {
@@ -61,46 +55,34 @@ const openingNameFromECOUrl = (ecoUrl: string | undefined): string | null => {
 export const parseGame = (pgnText: string): GameStats[] => {
   const games: GameStats[] = [];
 
-  if (!pgnText.trim()) {
-    return games;
-  }
-
   // Split PGN text into individual games
-  const gameTexts = pgnText.split(/\n\n(?=\[)/).filter((text) => text.trim());
+  for (const gameText of pgnText.split(/\n\n(?=\[)/)) {
+    if (!gameText.trim()) continue;
+    const [headerBlock, ...rest] = gameText.split(/\n\s*\n/);
 
-  for (const gameText of gameTexts) {
-    try {
-      const [headerBlock, ...rest] = gameText.split(/\n\s*\n/);
-      const movetext = rest.join("\n\n");
+    const headers: Record<string, string> = {};
+    for (const match of headerBlock.matchAll(HEADER_RE)) {
+      headers[match[1]] = match[2];
+    }
 
-      const headers: Record<string, string> = {};
-      for (const match of headerBlock.matchAll(HEADER_RE)) {
-        headers[match[1]] = match[2];
-      }
-
-      // Validate required fields
-      if (!headers.White || !headers.Black || !headers.Result) {
-        console.warn("Skipping game with missing required headers");
-        continue;
-      }
-
-      games.push({
-        timeControl: headers.TimeControl || "unlimited",
-        result: headers.Result,
-        white: headers.White,
-        black: headers.Black,
-        opening: headers.Opening || headers.ECOUrl || headers.ECO ? `${headers.Opening || openingNameFromECOUrl(headers.ECOUrl) || 'Unknown'} (${headers.ECO || '?'})` : "Unknown Opening",
-        date: headers.Date ? parsePGNDate(headers.Date) : new Date(),
-        whiteElo: headers.WhiteElo || "0",
-        blackElo: headers.BlackElo || "0",
-        whiteRatingDiff: headers.WhiteRatingDiff || "0",
-        blackRatingDiff: headers.BlackRatingDiff || "0",
-        moveCount: countPlies(movetext),
-      });
-    } catch (e) {
-      console.error("Error parsing game:", e);
+    if (!headers.White || !headers.Black || !headers.Result) {
+      console.warn("Skipping game with missing required headers");
       continue;
     }
+
+    games.push({
+      timeControl: headers.TimeControl || "unlimited",
+      result: headers.Result,
+      white: headers.White,
+      black: headers.Black,
+      opening: headers.Opening || headers.ECOUrl || headers.ECO ? `${headers.Opening || openingNameFromECOUrl(headers.ECOUrl) || 'Unknown'} (${headers.ECO || '?'})` : "Unknown Opening",
+      date: headers.Date ? parsePGNDate(headers.Date) : new Date(),
+      whiteElo: headers.WhiteElo || "0",
+      blackElo: headers.BlackElo || "0",
+      whiteRatingDiff: headers.WhiteRatingDiff || "0",
+      blackRatingDiff: headers.BlackRatingDiff || "0",
+      moveCount: countPlies(rest.join("\n\n")),
+    });
   }
 
   games.sort((a, b) => a.date!.getTime() - b.date!.getTime());

@@ -16,7 +16,6 @@ export interface AnalysisStats {
   gameTypes: Record<string, number>;
   results: { wins: number; losses: number; draws: number };
   streaks: { winStreak: number; lossStreak: number; drawStreak: number };
-  gameLengths: Array<{ length: number; result: string }>;
   openings: Array<{
     name: string;
     count: number;
@@ -51,5 +50,4 @@ export interface AnalysisStats {
     White: { wins: number; losses: number; draws: number };
     Black: { wins: number; losses: number; draws: number };
   };
-  peakRatings: Record<string, number>;
 }

@@ -17,7 +17,6 @@ async function fetchLichess(username: string, start: string, end: string): Promi
     url.searchParams.append('until', until.toString());
     url.searchParams.append('moves', 'true');
     url.searchParams.append('opening', 'true');
-    url.searchParams.append('pgnInJson', 'true');
     // bound memory: 10k games ≈ tens of MB of NDJSON; raise deliberately if users hit it
     url.searchParams.append('max', '10000');
 
