@@ -47,11 +47,12 @@ pnpm build
 - `lib/pgn-parser.ts` parses PGN text (from an upload or either platform's
   proxy) into per-game records.
 - `lib/analyzer.ts` aggregates those records into the stats shown in the UI.
+  Parsing and analysis both run in the browser, for fetched games and
+  uploaded files alike.
 - `app/api/fetch-games/route.ts` proxies the Lichess or Chess.com games API
-  for a username/month-range query — for Chess.com it first fetches the
+  for a username/month-range query. For Chess.com it first fetches the
   user's `/games/archives` list and only requests months that intersect the
-  requested range; `app/api/analyze/route.ts` runs the same analysis over an
-  uploaded PGN file regardless of source.
+  requested range.
 
 ## Roadmap
 
