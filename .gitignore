@@ -44,3 +44,11 @@ test.txt
 ld.pgn
 extractFilesContent.js
 .gstack/
+
+# editor swap files
+*.swp
+
+graphify-out/cache/
+graphify-out/manifest.json
+graphify-out/graph.html
+graphify-out/.graphify_*

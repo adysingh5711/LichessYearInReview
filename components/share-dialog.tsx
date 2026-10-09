@@ -2,7 +2,6 @@
 
 import { Button } from "./ui/button"
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog"
-import { VisuallyHidden } from "./ui/visually-hidden"
 import { toPng } from "html-to-image"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
@@ -84,9 +83,7 @@ export function ShareDialog({ open, onOpenChange, stats, totalGames, peakRating,
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md p-0 border-0 overflow-visible bg-transparent">
-                <VisuallyHidden>
-                    <DialogTitle>Chess Year in Review Share Card</DialogTitle>
-                </VisuallyHidden>
+                <DialogTitle className="sr-only">Chess Year in Review Share Card</DialogTitle>
                 <div className="fixed inset-0 bg-black/30 backdrop-blur-lg" />
                 <div className="relative flex items-center justify-center min-h-screen p-4">
                     <div
